@@ -29143,8 +29143,13 @@ function getAnnotations(pipelineFindings) {
     const filePathPrefix = 'src/main/java/';
     const annotations = [];
     pipelineFindings.forEach(function (element) {
-        const displayMessage = element.display_text.replace(/<span>/g, '').replace(/<\/span> /g, '\n').replace(/<\/span>/g, '');
-        const message = `Filename: ${filePathPrefix}${element.files.source_file.file}\nLine: ${element.files.source_file.line}\nCWE: ${element.cwe_id} (${element.issue_type})\n\n${displayMessage}`;
+        const displayMessage = element.display_text
+            .replace(/<span>/g, '')
+            .replace(/<\/span> /g, '\n')
+            .replace(/<\/span>/g, '');
+        const message = `Filename: ${filePathPrefix}${element.files.source_file.file}\n` +
+            `Line: ${element.files.source_file.line}\n` +
+            `CWE: ${element.cwe_id} (${element.issue_type})\n\n${displayMessage}`;
         annotations.push({
             path: `${filePathPrefix}${element.files.source_file.file}`,
             start_line: element.files.source_file.line,
