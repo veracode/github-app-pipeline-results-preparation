@@ -6,6 +6,7 @@ type Inputs = {
     vkey: string;
     check_run_id: number;
     appname: string;
+    source_repository: string;
 };
 export declare const parseInputs: (getInput: GetInput) => Inputs;
 export {};

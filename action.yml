@@ -17,6 +17,9 @@ inputs:
   appname:
     description: 'Veracode Application Name'
     required: true
+  source_repository:
+    description: 'Source Repository'
+    required: true
 runs:
   using: 'node20'
   main: 'dist/index.js'
