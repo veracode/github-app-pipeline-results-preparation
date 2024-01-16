@@ -30,7 +30,7 @@ export async function run(): Promise<void> {
   const resource = {
     resourceUri: '/appsec/v1/applications',
     queryAttribute: 'name',
-    queryValue: inputs.appname,
+    queryValue: encodeURIComponent(inputs.appname),
   };
 
   await http.getResourceByAttribute(inputs.vid, inputs.vkey, resource);
