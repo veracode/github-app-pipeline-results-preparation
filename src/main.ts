@@ -1,10 +1,12 @@
 import * as core from '@actions/core';
 import { parseInputs } from './inputs';
+import * as http from './api/http-request';
 // import { Octokit } from '@octokit/rest';
 import * as fs from 'fs/promises';
 import * as VeracodePipelineResult from './namespaces/VeracodePipelineResult';
-import * as http from './api/http-request';
+import * as VeracodePolicyResult from './namespaces/VeracodePolicyResult';
 import * as VeracodeApplication from './namespaces/VeracodeApplication';
+import appConfig from './app-config';
 
 /**
  * Runs the action.
@@ -24,23 +26,40 @@ export async function run(): Promise<void> {
     core.setFailed('Error reading or parsing pipeline scan results.');
   }
 
-  console.log(findingsArray.length);
+  // TODO: if no findings, update the checks status to success
   console.log(findingsArray.length); // Access and process the findings array
-  findingsArray.forEach((finding) => {
-    console.log(finding.cwe_id);
-    console.log(finding.files);
-  });
-
-  const resource = {
-    resourceUri: '/appsec/v1/applications',
+  
+  const getApplicationByNameResource = {
+    resourceUri: appConfig.applicationUri,
     queryAttribute: 'name',
     queryValue: encodeURIComponent(inputs.appname),
   };
 
-  const applicationResponse: VeracodeApplication.ResultsData = await http.getResourceByAttribute<VeracodeApplication.ResultsData>(inputs.vid, inputs.vkey, resource);
+  const applicationResponse: VeracodeApplication.ResultsData = await http.getResourceByAttribute
+    <VeracodeApplication.ResultsData>(inputs.vid, inputs.vkey, getApplicationByNameResource);
   const applications = applicationResponse._embedded.applications;
-  console.log(applications.length);
-  console.log(applications[0].guid);
+  if (applications.length === 0) {
+    core.setFailed(`No application found with name ${inputs.appname}`);
+  } else if (applications.length > 1) {
+    core.setFailed(`Multiple applications found with name ${inputs.appname}`);
+  }
+
+  const applicationGuid = applications[0].guid;
+  const getPolicyFindingsByApplicationResource = {
+    resourceUri: `${appConfig.findingsUri}/${applicationGuid}/findings`,
+    queryAttribute: 'size',
+    queryValue: '500',
+  }
+
+  const policyFindingsResponse: VeracodePolicyResult.ResultsData = await http.getResourceByAttribute
+    <VeracodePolicyResult.ResultsData>(inputs.vid, inputs.vkey, getPolicyFindingsByApplicationResource);
+
+  const policyFindings = policyFindingsResponse._embedded.findings;
+  console.log(policyFindings.length);
+  policyFindings.forEach((finding) => {
+    console.log(finding);
+  });
+
   // const octokit = new Octokit({
   //   auth: inputs.token,
   // });

@@ -24949,12 +24949,16 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const core = __importStar(__nccwpck_require__(749));
 const inputs_1 = __nccwpck_require__(7128);
-const fs = __importStar(__nccwpck_require__(3292));
 const http = __importStar(__nccwpck_require__(7740));
+const fs = __importStar(__nccwpck_require__(3292));
+const app_config_1 = __importDefault(__nccwpck_require__(2684));
 async function run() {
     const inputs = (0, inputs_1.parseInputs)(core.getInput);
     console.log(inputs.token);
@@ -24969,20 +24973,31 @@ async function run() {
         core.setFailed('Error reading or parsing pipeline scan results.');
     }
     console.log(findingsArray.length);
-    console.log(findingsArray.length);
-    findingsArray.forEach((finding) => {
-        console.log(finding.cwe_id);
-        console.log(finding.files);
-    });
-    const resource = {
-        resourceUri: '/appsec/v1/applications',
+    const getApplicationByNameResource = {
+        resourceUri: app_config_1.default.applicationUri,
         queryAttribute: 'name',
         queryValue: encodeURIComponent(inputs.appname),
     };
-    const applicationResponse = await http.getResourceByAttribute(inputs.vid, inputs.vkey, resource);
+    const applicationResponse = await http.getResourceByAttribute(inputs.vid, inputs.vkey, getApplicationByNameResource);
     const applications = applicationResponse._embedded.applications;
-    console.log(applications.length);
-    console.log(applications[0].guid);
+    if (applications.length === 0) {
+        core.setFailed(`No application found with name ${inputs.appname}`);
+    }
+    else if (applications.length > 1) {
+        core.setFailed(`Multiple applications found with name ${inputs.appname}`);
+    }
+    const applicationGuid = applications[0].guid;
+    const getPolicyFindingsByApplicationResource = {
+        resourceUri: `${app_config_1.default.findingsUri}/${applicationGuid}/findings`,
+        queryAttribute: 'size',
+        queryValue: '500',
+    };
+    const policyFindingsResponse = await http.getResourceByAttribute(inputs.vid, inputs.vkey, getPolicyFindingsByApplicationResource);
+    const policyFindings = policyFindingsResponse._embedded.findings;
+    console.log(policyFindings.length);
+    policyFindings.forEach((finding) => {
+        console.log(finding);
+    });
 }
 exports.run = run;
 
