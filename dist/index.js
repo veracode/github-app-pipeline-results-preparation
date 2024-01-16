@@ -28773,8 +28773,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.parseInputs = void 0;
 const parseInputs = (getInput) => {
     const token = getInput('token', { required: true });
-    console.log(token);
-    return { token: token };
+    const run_id = getInput('run_id', { required: true });
+    return { token: token, run_id: +run_id };
 };
 exports.parseInputs = parseInputs;
 
@@ -28821,9 +28821,15 @@ async function run() {
     const octokit = new rest_1.Octokit({
         auth: inputs.token,
     });
-    const { data } = await octokit.repos.listForOrg({
-        org: 'vincent-deng',
-        type: 'public',
+    core.debug('Setting up OctoKit...');
+    const ownership = {
+        owner: 'veracode-github-app-new',
+        repo: 'veracode'
+    };
+    const { data } = await octokit.actions.listWorkflowRunArtifacts({
+        owner: ownership.owner,
+        repo: 'veracode',
+        run_id: inputs.run_id,
     });
     console.log(data);
 }

@@ -13,10 +13,25 @@ export async function run(): Promise<void> {
     auth: inputs.token,
   });
 
-  const { data } = await octokit.repos.listForOrg({
-    org: 'vincent-deng',
-    type: 'public',
-  });
+  core.debug('Setting up OctoKit...');
+  // const octokit = github.getOctokit(inputs.token);
 
+  const ownership = {
+    owner: 'veracode-github-app-new',
+    repo: 'veracode'
+  };
+
+  // get artifacts in a workflow run
+  const { data } = await octokit.actions.listWorkflowRunArtifacts({
+    owner: ownership.owner,
+    repo: 'veracode',
+    run_id: inputs.run_id,
+  });
   console.log(data);
+
+
+  // const { data } = await octokit.repos.listForOrg({
+  //   org: 'vincent-deng',
+  //   type: 'public',
+  // });
 }
