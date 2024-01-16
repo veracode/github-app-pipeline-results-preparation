@@ -29135,10 +29135,27 @@ async function run() {
     }
     else {
         core.info('Pipeline findings after filtering, continue to update the github check status to failure');
-        await (0, checks_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, [], 'Here\'s the summary of the scan result.');
+        await (0, checks_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, getAnnotations(filteredFindingsArray), 'Here\'s the summary of the scan result.');
     }
 }
 exports.run = run;
+function getAnnotations(pipelineFindings) {
+    const filePathPrefix = 'src/main/java/';
+    const annotations = [];
+    pipelineFindings.forEach(function (element) {
+        const displayMessage = element.display_text.replace(/<span>/g, '').replace(/<\/span> /g, '\n').replace(/<\/span>/g, '');
+        const message = `Filename: ${filePathPrefix}${element.files.source_file.file}\nLine: ${element.files.source_file.line}\nCWE: ${element.cwe_id} (${element.issue_type})\n\n${displayMessage}`;
+        annotations.push({
+            path: `${filePathPrefix}${element.files.source_file.file}`,
+            start_line: element.files.source_file.line,
+            end_line: element.files.source_file.line,
+            annotation_level: 'warning',
+            title: element.issue_type,
+            message: message,
+        });
+    });
+    return annotations;
+}
 
 
 /***/ }),

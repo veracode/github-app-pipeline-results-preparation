@@ -133,6 +133,24 @@ export async function run(): Promise<void> {
     return;
   } else {
     core.info('Pipeline findings after filtering, continue to update the github check status to failure');
-    await updateChecks(octokit, checkStatic, Checks.Conclusion.Failure, [], 'Here\'s the summary of the scan result.');
+    await updateChecks(octokit, checkStatic, Checks.Conclusion.Failure, getAnnotations(filteredFindingsArray), 'Here\'s the summary of the scan result.');
   }
+}
+
+function getAnnotations(pipelineFindings: VeracodePipelineResult.Finding[]): Checks.Annotation[] {
+  const filePathPrefix = 'src/main/java/';
+  const annotations: Checks.Annotation[] = [];
+  pipelineFindings.forEach(function(element) {
+    const displayMessage = element.display_text.replace(/<span>/g, '').replace(/<\/span> /g, '\n').replace(/<\/span>/g, '');
+    const message = `Filename: ${filePathPrefix}${element.files.source_file.file}\nLine: ${element.files.source_file.line}\nCWE: ${element.cwe_id} (${element.issue_type})\n\n${displayMessage}`;
+    annotations.push({
+      path: `${filePathPrefix}${element.files.source_file.file}`,
+      start_line: element.files.source_file.line,
+      end_line: element.files.source_file.line,
+      annotation_level: 'warning',
+      title: element.issue_type,
+      message: message,
+    });
+  })
+  return annotations;
 }

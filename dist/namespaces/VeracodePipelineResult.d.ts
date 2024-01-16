@@ -13,6 +13,7 @@ export interface Finding {
     issue_type: string;
     cwe_id: string;
     files: File;
+    display_text: string;
 }
 export interface ResultsData {
     scan_id: string;
