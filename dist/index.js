@@ -24798,6 +24798,7 @@ async function getResourceByAttribute(vid, vkey, resource) {
         }),
     };
     const appUrl = `https://${app_config_1.default.hostName}${resourceUri}${urlQueryParams}`;
+    console.log(appUrl);
     try {
         const response = await fetch(appUrl, { headers });
         const data = await response.json();
