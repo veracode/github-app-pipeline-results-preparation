@@ -21,4 +21,4 @@ export interface ResultsData {
   scan_id: string;
   modules: string[];
   findings: Finding[];
-};
+}

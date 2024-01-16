@@ -9,5 +9,5 @@ export interface ResultsData {
   };
   _embedded: {
     applications: Application[];
-  }
-};
+  };
+}

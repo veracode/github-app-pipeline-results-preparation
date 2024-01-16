@@ -28962,6 +28962,33 @@ exports["default"] = appConfig;
 
 /***/ }),
 
+/***/ 6805:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.updateChecks = void 0;
+async function updateChecks(octokit, checksStatic, conclusion, annotations, summary) {
+    const data = {
+        owner: checksStatic.owner,
+        repo: checksStatic.repo,
+        check_run_id: checksStatic.check_run_id,
+        status: checksStatic.status,
+        conclusion: conclusion,
+        output: {
+            annotations: annotations,
+            title: 'Veracode Static Code Analysis',
+            summary: summary,
+        },
+    };
+    await octokit.checks.update(data);
+}
+exports.updateChecks = updateChecks;
+
+
+/***/ }),
+
 /***/ 7128:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -29018,30 +29045,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.run = exports.Status = exports.Conclusion = void 0;
+exports.run = void 0;
 const core = __importStar(__nccwpck_require__(749));
 const inputs_1 = __nccwpck_require__(7128);
 const http = __importStar(__nccwpck_require__(7740));
 const rest_1 = __nccwpck_require__(1605);
 const fs = __importStar(__nccwpck_require__(3292));
+const Checks = __importStar(__nccwpck_require__(3973));
+const checks_1 = __nccwpck_require__(6805);
 const app_config_1 = __importDefault(__nccwpck_require__(2684));
 const LINE_NUMBER_SLOP = 3;
-var Conclusion;
-(function (Conclusion) {
-    Conclusion["Success"] = "success";
-    Conclusion["Failure"] = "failure";
-    Conclusion["Neutral"] = "neutral";
-    Conclusion["Cancelled"] = "cancelled";
-    Conclusion["TimedOut"] = "timed_out";
-    Conclusion["ActionRequired"] = "action_required";
-    Conclusion["Skipped"] = "skipped";
-})(Conclusion || (exports.Conclusion = Conclusion = {}));
-var Status;
-(function (Status) {
-    Status["Queued"] = "queued";
-    Status["InProgress"] = "in_progress";
-    Status["Completed"] = "completed";
-})(Status || (exports.Status = Status = {}));
 async function run() {
     const inputs = (0, inputs_1.parseInputs)(core.getInput);
     console.log(inputs.source_repository);
@@ -29049,6 +29062,12 @@ async function run() {
     const ownership = {
         owner: repo[0],
         repo: repo[1],
+    };
+    const checkStatic = {
+        owner: ownership.owner,
+        repo: ownership.repo,
+        check_run_id: inputs.check_run_id,
+        status: Checks.Status.Completed,
     };
     let findingsArray = [];
     try {
@@ -29067,24 +29086,9 @@ async function run() {
     core.info(`Pipeline findings: ${findingsArray.length}`);
     if (findingsArray.length === 0) {
         core.info('No pipeline findings, exiting and update the github check status to success');
-        const data = {
-            owner: ownership.owner,
-            repo: ownership.repo,
-            check_run_id: inputs.check_run_id,
-            status: Status.Completed,
-            conclusion: Conclusion.Success,
-        };
-        await octokit.checks.update(data);
+        await (0, checks_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Success, [], 'No pipeline findings');
         return;
     }
-    const data = {
-        owner: ownership.owner,
-        repo: ownership.repo,
-        check_run_id: inputs.check_run_id,
-        status: Status.Completed,
-        conclusion: Conclusion.Failure,
-    };
-    await octokit.checks.update(data);
     const getApplicationByNameResource = {
         resourceUri: app_config_1.default.applicationUri,
         queryAttribute: 'name',
@@ -29109,23 +29113,59 @@ async function run() {
     const policyFindings = policyFindingsResponse._embedded.findings;
     core.info(`Policy findings: ${policyFindings.length}`);
     const mitigatedPolicyFindings = policyFindings.filter((finding) => {
-        return finding.violates_policy === true
-            && finding.finding_status.status === 'CLOSED'
-            && (finding.finding_status.resolution === 'POTENTIAL_FALSE_POSITIVE'
-                || finding.finding_status.resolution === 'MITIGATED')
-            && finding.finding_status.resolution_status === 'APPROVED';
+        return (finding.violates_policy === true &&
+            finding.finding_status.status === 'CLOSED' &&
+            (finding.finding_status.resolution === 'POTENTIAL_FALSE_POSITIVE' ||
+                finding.finding_status.resolution === 'MITIGATED') &&
+            finding.finding_status.resolution_status === 'APPROVED');
     });
     core.info(`Mitigated policy findings: ${mitigatedPolicyFindings.length}`);
     const filteredFindingsArray = findingsArray.filter((finding) => {
         return !mitigatedPolicyFindings.some((mitigatedFinding) => {
-            return finding.files.source_file.file === mitigatedFinding.finding_details.file_path
-                && +finding.cwe_id === mitigatedFinding.finding_details.cwe.id
-                && Math.abs(finding.files.source_file.line - mitigatedFinding.finding_details.file_line_number) <= LINE_NUMBER_SLOP;
+            return (finding.files.source_file.file === mitigatedFinding.finding_details.file_path &&
+                +finding.cwe_id === mitigatedFinding.finding_details.cwe.id &&
+                Math.abs(finding.files.source_file.line - mitigatedFinding.finding_details.file_line_number) <= LINE_NUMBER_SLOP);
         });
     });
     core.info(`Filtered pipeline findings: ${filteredFindingsArray.length}`);
+    if (filteredFindingsArray.length === 0) {
+        core.info('No pipeline findings after filtering, exiting and update the github check status to success');
+        await (0, checks_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Success, [], 'No pipeline findings');
+        return;
+    }
+    else {
+        core.info('Pipeline findings after filtering, continue to update the github check status to failure');
+        await (0, checks_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, [], 'Here\'s the summary of the scan result.');
+    }
 }
 exports.run = run;
+
+
+/***/ }),
+
+/***/ 3973:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Status = exports.Conclusion = void 0;
+var Conclusion;
+(function (Conclusion) {
+    Conclusion["Success"] = "success";
+    Conclusion["Failure"] = "failure";
+    Conclusion["Neutral"] = "neutral";
+    Conclusion["Cancelled"] = "cancelled";
+    Conclusion["TimedOut"] = "timed_out";
+    Conclusion["ActionRequired"] = "action_required";
+    Conclusion["Skipped"] = "skipped";
+})(Conclusion || (exports.Conclusion = Conclusion = {}));
+var Status;
+(function (Status) {
+    Status["Queued"] = "queued";
+    Status["InProgress"] = "in_progress";
+    Status["Completed"] = "completed";
+})(Status || (exports.Status = Status = {}));
 
 
 /***/ }),

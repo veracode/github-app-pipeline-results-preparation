@@ -24,5 +24,5 @@ export interface ResultsData {
   };
   _embedded: {
     findings: Finding[];
-  }
-};
+  };
+}
