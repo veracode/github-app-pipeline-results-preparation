@@ -2,31 +2,7 @@ import * as core from '@actions/core';
 import { parseInputs } from './inputs';
 // import { Octokit } from '@octokit/rest';
 import * as fs from 'fs/promises';
-
-// Interface for the data structure in results.json
-
-interface File {
-  source_file: {
-    file: string;
-    line: number;
-    function_name: string;
-  }
-}
-interface Finding {
-  // Define the properties of a single finding
-  title: string;
-  issue_id: number;
-  severity: number;
-  issue_type_id: string;
-  issue_type: string;
-  cwe_id: string;
-  files: File;
-}
-interface ResultsData {
-  scan_id: string;
-  modules: string[];
-  findings: Finding[]; // Adjust the type of findings array if needed
-}
+import * as VeracodePipelineResult from './namespaces/VeracodeResults';
 
 /**
  * Runs the action.
@@ -38,7 +14,7 @@ export async function run(): Promise<void> {
 
   try {
     const data = await fs.readFile('filtered_results.json', 'utf-8');
-    const parsedData: ResultsData = JSON.parse(data);
+    const parsedData: VeracodePipelineResult.ResultsData = JSON.parse(data);
     const findingsArray = parsedData.findings;
 
     console.log(findingsArray.length); // Access and process the findings array
