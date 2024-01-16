@@ -5,7 +5,7 @@ interface File {
         function_name: string;
     };
 }
-interface Finding {
+export interface Finding {
     title: string;
     issue_id: number;
     severity: number;
@@ -14,9 +14,9 @@ interface Finding {
     cwe_id: string;
     files: File;
 }
-export type ResultsData = {
+export interface ResultsData {
     scan_id: string;
     modules: string[];
     findings: Finding[];
-};
+}
 export {};

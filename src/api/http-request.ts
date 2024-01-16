@@ -7,7 +7,7 @@ interface Resource {
   queryValue: string;
 }
 
-export async function getResourceByAttribute(vid: string, vkey: string, resource: Resource): Promise<void> {
+export async function getResourceByAttribute<T>(vid: string, vkey: string, resource: Resource): Promise<T> {
   const resourceUri = resource.resourceUri;
   const queryAttribute = resource.queryAttribute;
   const queryValue = resource.queryValue;
@@ -28,8 +28,8 @@ export async function getResourceByAttribute(vid: string, vkey: string, resource
   try {
     const response = await fetch(appUrl, { headers });
     const data = await response.json();
-    console.log(data);
+    return data as T;
   } catch (error) {
-    console.error(error);
+    throw new Error('Failed to fetch resource.');
   }
 }

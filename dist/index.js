@@ -24802,10 +24802,10 @@ async function getResourceByAttribute(vid, vkey, resource) {
     try {
         const response = await fetch(appUrl, { headers });
         const data = await response.json();
-        console.log(data);
+        return data;
     }
     catch (error) {
-        console.error(error);
+        throw new Error('Failed to fetch resource.');
     }
 }
 exports.getResourceByAttribute = getResourceByAttribute;
@@ -24953,16 +24953,36 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const core = __importStar(__nccwpck_require__(749));
 const inputs_1 = __nccwpck_require__(7128);
+const fs = __importStar(__nccwpck_require__(3292));
 const http = __importStar(__nccwpck_require__(7740));
 async function run() {
     const inputs = (0, inputs_1.parseInputs)(core.getInput);
     console.log(inputs.token);
+    let findingsArray = [];
+    try {
+        const data = await fs.readFile('filtered_results.json', 'utf-8');
+        const parsedData = JSON.parse(data);
+        findingsArray = parsedData.findings;
+    }
+    catch (error) {
+        core.debug(`Error reading or parsing filtered_results.json:${error}`);
+        core.setFailed('Error reading or parsing pipeline scan results.');
+    }
+    console.log(findingsArray.length);
+    console.log(findingsArray.length);
+    findingsArray.forEach((finding) => {
+        console.log(finding.cwe_id);
+        console.log(finding.files);
+    });
     const resource = {
         resourceUri: '/appsec/v1/applications',
         queryAttribute: 'name',
         queryValue: encodeURIComponent(inputs.appname),
     };
-    await http.getResourceByAttribute(inputs.vid, inputs.vkey, resource);
+    const applicationResponse = await http.getResourceByAttribute(inputs.vid, inputs.vkey, resource);
+    const applications = applicationResponse._embedded.applications;
+    console.log(applications.length);
+    console.log(applications[0].guid);
 }
 exports.run = run;
 
@@ -25030,6 +25050,14 @@ module.exports = require("events");
 
 "use strict";
 module.exports = require("fs");
+
+/***/ }),
+
+/***/ 3292:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("fs/promises");
 
 /***/ }),
 

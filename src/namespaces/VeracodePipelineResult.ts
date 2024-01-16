@@ -6,7 +6,7 @@ interface File {
   };
 }
 
-interface Finding {
+export interface Finding {
   // Define the properties of a single finding
   title: string;
   issue_id: number;
@@ -17,7 +17,7 @@ interface Finding {
   files: File;
 }
 
-export type ResultsData = {
+export interface ResultsData {
   scan_id: string;
   modules: string[];
   findings: Finding[];

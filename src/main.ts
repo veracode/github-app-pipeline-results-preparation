@@ -4,6 +4,7 @@ import { parseInputs } from './inputs';
 import * as fs from 'fs/promises';
 import * as VeracodePipelineResult from './namespaces/VeracodePipelineResult';
 import * as http from './api/http-request';
+import * as VeracodeApplication from './namespaces/VeracodeApplication';
 
 /**
  * Runs the action.
@@ -12,20 +13,23 @@ export async function run(): Promise<void> {
   const inputs = parseInputs(core.getInput);
   console.log(inputs.token);
 
-  // try {
-  //   const data = await fs.readFile('filtered_results.json', 'utf-8');
-  //   const parsedData: VeracodePipelineResult.ResultsData = JSON.parse(data);
-  //   const findingsArray = parsedData.findings;
+  let findingsArray: VeracodePipelineResult.Finding[] = [];
 
-  //   console.log(findingsArray.length); // Access and process the findings array
-  //   findingsArray.forEach((finding) => {
-  //     console.log(finding.cwe_id);
-  //     console.log(finding.files);
-  //   });
-  // } catch (error) {
-  //   core.debug(`Error reading or parsing filtered_results.json:${error}`);
-  //   core.setFailed('Error reading or parsing pipeline scan results.');
-  // }
+  try {
+    const data = await fs.readFile('filtered_results.json', 'utf-8');
+    const parsedData: VeracodePipelineResult.ResultsData = JSON.parse(data);
+    findingsArray = parsedData.findings;
+  } catch (error) {
+    core.debug(`Error reading or parsing filtered_results.json:${error}`);
+    core.setFailed('Error reading or parsing pipeline scan results.');
+  }
+
+  console.log(findingsArray.length);
+  console.log(findingsArray.length); // Access and process the findings array
+  findingsArray.forEach((finding) => {
+    console.log(finding.cwe_id);
+    console.log(finding.files);
+  });
 
   const resource = {
     resourceUri: '/appsec/v1/applications',
@@ -33,8 +37,10 @@ export async function run(): Promise<void> {
     queryValue: encodeURIComponent(inputs.appname),
   };
 
-  await http.getResourceByAttribute(inputs.vid, inputs.vkey, resource);
-
+  const applicationResponse: VeracodeApplication.ResultsData = await http.getResourceByAttribute<VeracodeApplication.ResultsData>(inputs.vid, inputs.vkey, resource);
+  const applications = applicationResponse._embedded.applications;
+  console.log(applications.length);
+  console.log(applications[0].guid);
   // const octokit = new Octokit({
   //   auth: inputs.token,
   // });
