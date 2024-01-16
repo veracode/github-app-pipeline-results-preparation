@@ -24982,9 +24982,11 @@ async function run() {
     const applications = applicationResponse._embedded.applications;
     if (applications.length === 0) {
         core.setFailed(`No application found with name ${inputs.appname}`);
+        return;
     }
     else if (applications.length > 1) {
         core.setFailed(`Multiple applications found with name ${inputs.appname}`);
+        return;
     }
     const applicationGuid = applications[0].guid;
     const getPolicyFindingsByApplicationResource = {
@@ -24994,8 +24996,11 @@ async function run() {
     };
     const policyFindingsResponse = await http.getResourceByAttribute(inputs.vid, inputs.vkey, getPolicyFindingsByApplicationResource);
     const policyFindings = policyFindingsResponse._embedded.findings;
-    console.log(policyFindings.length);
-    policyFindings.forEach((finding) => {
+    core.info(`Policy findings: ${policyFindings.length}`);
+    const filteredFindings = policyFindings.filter((finding) => {
+        return finding.violates_policy === true && finding.finding_status.status === 'CLOSED' && (finding.finding_status.resolution === 'POTENTIAL_FALSE_POSITIVE' || finding.finding_status.resolution === 'MITIGATED') && finding.finding_status.resolution_status === 'APPROVED';
+    });
+    filteredFindings.forEach((finding) => {
         console.log(finding);
     });
 }

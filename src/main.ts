@@ -40,8 +40,10 @@ export async function run(): Promise<void> {
   const applications = applicationResponse._embedded.applications;
   if (applications.length === 0) {
     core.setFailed(`No application found with name ${inputs.appname}`);
+    return;
   } else if (applications.length > 1) {
     core.setFailed(`Multiple applications found with name ${inputs.appname}`);
+    return;
   }
 
   const applicationGuid = applications[0].guid;
@@ -54,9 +56,16 @@ export async function run(): Promise<void> {
   const policyFindingsResponse: VeracodePolicyResult.ResultsData = await http.getResourceByAttribute
     <VeracodePolicyResult.ResultsData>(inputs.vid, inputs.vkey, getPolicyFindingsByApplicationResource);
 
+  // What if no policy scan?
   const policyFindings = policyFindingsResponse._embedded.findings;
-  console.log(policyFindings.length);
-  policyFindings.forEach((finding) => {
+  core.info(`Policy findings: ${policyFindings.length}`);
+
+  // filter out policy findings based on violates_policy = true and finding_status.status = "CLOSED" and resolution = "POTENTIAL_FALSE_POSITIVE" or "MITIGATED" and resolution_status = "APPROVED"
+  const filteredFindings = policyFindings.filter((finding) => {
+    return finding.violates_policy === true && finding.finding_status.status === 'CLOSED' && (finding.finding_status.resolution === 'POTENTIAL_FALSE_POSITIVE' || finding.finding_status.resolution === 'MITIGATED') && finding.finding_status.resolution_status === 'APPROVED';
+  });
+
+  filteredFindings.forEach((finding) => {
     console.log(finding);
   });
 
