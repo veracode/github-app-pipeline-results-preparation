@@ -5,7 +5,7 @@ inputs:
   token:
     description: 'your GITHUB_TOKEN'
     required: true
-  run_id:
+  check_run_id:
     description: 'GitHub Check Run ID'
     required: true
   vid:

@@ -6,16 +6,16 @@ type Inputs = {
   token: string;
   vid: string;
   vkey: string;
-  run_id: number;
+  check_run_id: number;
   appname: string;
 };
 
 export const parseInputs = (getInput: GetInput): Inputs => {
   const token = getInput('token', { required: true });
-  const run_id = getInput('run_id', { required: true });
+  const check_run_id = getInput('check_run_id', { required: true });
   const vid = getInput('vid', { required: true });
   const vkey = getInput('vkey', { required: true });
   const appname = getInput('appname', { required: true });
 
-  return { token: token, run_id: +run_id, vid: vid, vkey: vkey, appname: appname };
+  return { token: token, check_run_id: +check_run_id, vid: vid, vkey: vkey, appname: appname };
 };

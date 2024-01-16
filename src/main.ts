@@ -15,7 +15,7 @@ const LINE_NUMBER_SLOP = 3 //adjust to allow for line number movement
  */
 export async function run(): Promise<void> {
   const inputs = parseInputs(core.getInput);
-  console.log(inputs.token);
+  console.log(inputs.check_run_id);
 
   let findingsArray: VeracodePipelineResult.Finding[] = [];
 
@@ -64,9 +64,14 @@ export async function run(): Promise<void> {
   const policyFindings = policyFindingsResponse._embedded.findings;
   core.info(`Policy findings: ${policyFindings.length}`);
 
-  // filter out policy findings based on violates_policy = true and finding_status.status = "CLOSED" and resolution = "POTENTIAL_FALSE_POSITIVE" or "MITIGATED" and resolution_status = "APPROVED"
+  // filter out policy findings based on violates_policy = true and finding_status.status = "CLOSED" and 
+  // resolution = "POTENTIAL_FALSE_POSITIVE" or "MITIGATED" and resolution_status = "APPROVED"
   const mitigatedPolicyFindings = policyFindings.filter((finding) => {
-    return finding.violates_policy === true && finding.finding_status.status === 'CLOSED' && (finding.finding_status.resolution === 'POTENTIAL_FALSE_POSITIVE' || finding.finding_status.resolution === 'MITIGATED') && finding.finding_status.resolution_status === 'APPROVED';
+    return finding.violates_policy === true 
+      && finding.finding_status.status === 'CLOSED' 
+      && (finding.finding_status.resolution === 'POTENTIAL_FALSE_POSITIVE' 
+        || finding.finding_status.resolution === 'MITIGATED') 
+      && finding.finding_status.resolution_status === 'APPROVED';
   });
 
   core.info(`Mitigated policy findings: ${mitigatedPolicyFindings.length}`);
@@ -83,7 +88,6 @@ export async function run(): Promise<void> {
   });
 
   core.info(`Filtered pipeline findings: ${filteredFindingsArray.length}`);
-  console.log(filteredFindingsArray);
 
 
   // const octokit = new Octokit({

@@ -24,7 +24,6 @@ export async function getResourceByAttribute<T>(vid: string, vkey: string, resou
     }),
   };
   const appUrl = `https://${appConfig.hostName}${resourceUri}${urlQueryParams}`;
-  console.log(appUrl);
   try {
     const response = await fetch(appUrl, { headers });
     const data = await response.json();

@@ -24798,7 +24798,6 @@ async function getResourceByAttribute(vid, vkey, resource) {
         }),
     };
     const appUrl = `https://${app_config_1.default.hostName}${resourceUri}${urlQueryParams}`;
-    console.log(appUrl);
     try {
         const response = await fetch(appUrl, { headers });
         const data = await response.json();
@@ -24910,11 +24909,11 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.parseInputs = void 0;
 const parseInputs = (getInput) => {
     const token = getInput('token', { required: true });
-    const run_id = getInput('run_id', { required: true });
+    const check_run_id = getInput('check_run_id', { required: true });
     const vid = getInput('vid', { required: true });
     const vkey = getInput('vkey', { required: true });
     const appname = getInput('appname', { required: true });
-    return { token: token, run_id: +run_id, vid: vid, vkey: vkey, appname: appname };
+    return { token: token, check_run_id: +check_run_id, vid: vid, vkey: vkey, appname: appname };
 };
 exports.parseInputs = parseInputs;
 
@@ -24962,7 +24961,7 @@ const app_config_1 = __importDefault(__nccwpck_require__(2684));
 const LINE_NUMBER_SLOP = 3;
 async function run() {
     const inputs = (0, inputs_1.parseInputs)(core.getInput);
-    console.log(inputs.token);
+    console.log(inputs.check_run_id);
     let findingsArray = [];
     try {
         const data = await fs.readFile('filtered_results.json', 'utf-8');
@@ -24999,7 +24998,11 @@ async function run() {
     const policyFindings = policyFindingsResponse._embedded.findings;
     core.info(`Policy findings: ${policyFindings.length}`);
     const mitigatedPolicyFindings = policyFindings.filter((finding) => {
-        return finding.violates_policy === true && finding.finding_status.status === 'CLOSED' && (finding.finding_status.resolution === 'POTENTIAL_FALSE_POSITIVE' || finding.finding_status.resolution === 'MITIGATED') && finding.finding_status.resolution_status === 'APPROVED';
+        return finding.violates_policy === true
+            && finding.finding_status.status === 'CLOSED'
+            && (finding.finding_status.resolution === 'POTENTIAL_FALSE_POSITIVE'
+                || finding.finding_status.resolution === 'MITIGATED')
+            && finding.finding_status.resolution_status === 'APPROVED';
     });
     core.info(`Mitigated policy findings: ${mitigatedPolicyFindings.length}`);
     const filteredFindingsArray = findingsArray.filter((finding) => {
@@ -25010,7 +25013,6 @@ async function run() {
         });
     });
     core.info(`Filtered pipeline findings: ${filteredFindingsArray.length}`);
-    console.log(filteredFindingsArray);
 }
 exports.run = run;
 
