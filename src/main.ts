@@ -12,20 +12,20 @@ export async function run(): Promise<void> {
   const inputs = parseInputs(core.getInput);
   console.log(inputs.token);
 
-  try {
-    const data = await fs.readFile('filtered_results.json', 'utf-8');
-    const parsedData: VeracodePipelineResult.ResultsData = JSON.parse(data);
-    const findingsArray = parsedData.findings;
+  // try {
+  //   const data = await fs.readFile('filtered_results.json', 'utf-8');
+  //   const parsedData: VeracodePipelineResult.ResultsData = JSON.parse(data);
+  //   const findingsArray = parsedData.findings;
 
-    console.log(findingsArray.length); // Access and process the findings array
-    findingsArray.forEach((finding) => {
-      console.log(finding.cwe_id);
-      console.log(finding.files);
-    });
-  } catch (error) {
-    core.debug(`Error reading or parsing filtered_results.json:${error}`);
-    core.setFailed('Error reading or parsing pipeline scan results.');
-  }
+  //   console.log(findingsArray.length); // Access and process the findings array
+  //   findingsArray.forEach((finding) => {
+  //     console.log(finding.cwe_id);
+  //     console.log(finding.files);
+  //   });
+  // } catch (error) {
+  //   core.debug(`Error reading or parsing filtered_results.json:${error}`);
+  //   core.setFailed('Error reading or parsing pipeline scan results.');
+  // }
 
   const resource = {
     resourceUri: '/appsec/v1/applications',

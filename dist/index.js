@@ -24953,25 +24953,10 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const core = __importStar(__nccwpck_require__(749));
 const inputs_1 = __nccwpck_require__(7128);
-const fs = __importStar(__nccwpck_require__(3292));
 const http = __importStar(__nccwpck_require__(7740));
 async function run() {
     const inputs = (0, inputs_1.parseInputs)(core.getInput);
     console.log(inputs.token);
-    try {
-        const data = await fs.readFile('filtered_results.json', 'utf-8');
-        const parsedData = JSON.parse(data);
-        const findingsArray = parsedData.findings;
-        console.log(findingsArray.length);
-        findingsArray.forEach((finding) => {
-            console.log(finding.cwe_id);
-            console.log(finding.files);
-        });
-    }
-    catch (error) {
-        core.debug(`Error reading or parsing filtered_results.json:${error}`);
-        core.setFailed('Error reading or parsing pipeline scan results.');
-    }
     const resource = {
         resourceUri: '/appsec/v1/applications',
         queryAttribute: 'name',
@@ -25045,14 +25030,6 @@ module.exports = require("events");
 
 "use strict";
 module.exports = require("fs");
-
-/***/ }),
-
-/***/ 3292:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("fs/promises");
 
 /***/ }),
 
