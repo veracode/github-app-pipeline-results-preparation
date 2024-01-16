@@ -24757,13 +24757,17 @@ async function run() {
     console.log(inputs);
     console.log(inputs.token);
     try {
-        const data = await fs.readFile('results.json', 'utf-8');
+        const data = await fs.readFile('filtered_results.json', 'utf-8');
         const parsedData = JSON.parse(data);
         const findingsArray = parsedData.findings;
-        console.log(findingsArray);
+        console.log(findingsArray.length);
+        findingsArray.forEach((finding) => {
+            console.log(finding.cwe_id);
+            console.log(finding.files);
+        });
     }
     catch (error) {
-        console.error('Error reading or parsing results.json:', error);
+        console.error('Error reading or parsing filtered_results.json:', error);
     }
 }
 exports.run = run;

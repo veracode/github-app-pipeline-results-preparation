@@ -5,6 +5,13 @@ import * as fs from 'fs/promises';
 
 // Interface for the data structure in results.json
 
+interface File {
+  source_file: {
+    file: string;
+    line: number;
+    function_name: string;
+  }
+}
 interface Finding {
   // Define the properties of a single finding
   title: string;
@@ -13,6 +20,7 @@ interface Finding {
   issue_type_id: string;
   issue_type: string;
   cwe_id: string;
+  files: File;
 }
 interface ResultsData {
   scan_id: string;
@@ -29,14 +37,19 @@ export async function run(): Promise<void> {
   console.log(inputs.token);
 
   try {
-    const data = await fs.readFile('results.json', 'utf-8');
+    const data = await fs.readFile('filtered_results.json', 'utf-8');
     const parsedData: ResultsData = JSON.parse(data);
     const findingsArray = parsedData.findings;
 
-    console.log(findingsArray); // Access and process the findings array
+    console.log(findingsArray.length); // Access and process the findings array
+    // iterate findingsArray to display attribute cwe_id
+    findingsArray.forEach((finding) => {
+      console.log(finding.cwe_id);
+      console.log(finding.files);
+    });
 
   } catch (error) {
-    console.error('Error reading or parsing results.json:', error);
+    console.error('Error reading or parsing filtered_results.json:', error);
   }
   // const octokit = new Octokit({
   //   auth: inputs.token,
