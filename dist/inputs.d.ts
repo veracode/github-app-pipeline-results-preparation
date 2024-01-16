@@ -1,8 +1,11 @@
 import { InputOptions } from '@actions/core';
 type GetInput = (name: string, options?: InputOptions | undefined) => string;
-interface Inputs {
+type Inputs = {
     token: string;
+    vid: string;
+    vkey: string;
     run_id: number;
-}
+    appname: string;
+};
 export declare const parseInputs: (getInput: GetInput) => Inputs;
 export {};

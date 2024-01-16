@@ -6,8 +6,17 @@ inputs:
     description: 'your GITHUB_TOKEN'
     required: true
   run_id:
-    description: 'The workflow ID running the Veracode Pipeline Scan'
-    required: true    
+    description: 'GitHub Check Run ID'
+    required: true
+  vid:
+    description: 'Veracode ID'
+    required: true
+  vkey:
+    description: 'Veracode Key'
+    required: true
+  appname:
+    description: 'Veracode Application Name'
+    required: true
 runs:
   using: 'node20'
   main: 'dist/index.js'

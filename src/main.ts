@@ -2,14 +2,14 @@ import * as core from '@actions/core';
 import { parseInputs } from './inputs';
 // import { Octokit } from '@octokit/rest';
 import * as fs from 'fs/promises';
-import * as VeracodePipelineResult from './namespaces/VeracodeResults';
+import * as VeracodePipelineResult from './namespaces/VeracodePipelineResult';
+import * as http from './api/http-request';
 
 /**
  * Runs the action.
  */
 export async function run(): Promise<void> {
   const inputs = parseInputs(core.getInput);
-  console.log(inputs);
   console.log(inputs.token);
 
   try {
@@ -18,15 +18,23 @@ export async function run(): Promise<void> {
     const findingsArray = parsedData.findings;
 
     console.log(findingsArray.length); // Access and process the findings array
-    // iterate findingsArray to display attribute cwe_id
     findingsArray.forEach((finding) => {
       console.log(finding.cwe_id);
       console.log(finding.files);
     });
-
   } catch (error) {
-    console.error('Error reading or parsing filtered_results.json:', error);
+    core.debug(`Error reading or parsing filtered_results.json:${error}`);
+    core.setFailed('Error reading or parsing pipeline scan results.');
   }
+
+  const resource = {
+    resourceUri: '/appsec/v1/applications',
+    queryAttribute: 'name',
+    queryValue: inputs.appname,
+  };
+
+  await http.getResourceByAttribute(inputs.vid, inputs.vkey, resource);
+
   // const octokit = new Octokit({
   //   auth: inputs.token,
   // });
