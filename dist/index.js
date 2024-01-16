@@ -24959,6 +24959,7 @@ const inputs_1 = __nccwpck_require__(7128);
 const http = __importStar(__nccwpck_require__(7740));
 const fs = __importStar(__nccwpck_require__(3292));
 const app_config_1 = __importDefault(__nccwpck_require__(2684));
+const LINE_NUMBER_SLOP = 3;
 async function run() {
     const inputs = (0, inputs_1.parseInputs)(core.getInput);
     console.log(inputs.token);
@@ -24971,8 +24972,9 @@ async function run() {
     catch (error) {
         core.debug(`Error reading or parsing filtered_results.json:${error}`);
         core.setFailed('Error reading or parsing pipeline scan results.');
+        return;
     }
-    console.log(findingsArray.length);
+    core.info(`Pipeline findings: ${findingsArray.length}`);
     const getApplicationByNameResource = {
         resourceUri: app_config_1.default.applicationUri,
         queryAttribute: 'name',
@@ -24985,24 +24987,30 @@ async function run() {
         return;
     }
     else if (applications.length > 1) {
-        core.setFailed(`Multiple applications found with name ${inputs.appname}`);
-        return;
+        core.info(`Multiple applications found with name ${inputs.appname}, selecting the first found`);
     }
     const applicationGuid = applications[0].guid;
     const getPolicyFindingsByApplicationResource = {
         resourceUri: `${app_config_1.default.findingsUri}/${applicationGuid}/findings`,
         queryAttribute: 'size',
-        queryValue: '500',
+        queryValue: '1000',
     };
     const policyFindingsResponse = await http.getResourceByAttribute(inputs.vid, inputs.vkey, getPolicyFindingsByApplicationResource);
     const policyFindings = policyFindingsResponse._embedded.findings;
     core.info(`Policy findings: ${policyFindings.length}`);
-    const filteredFindings = policyFindings.filter((finding) => {
+    const mitigatedPolicyFindings = policyFindings.filter((finding) => {
         return finding.violates_policy === true && finding.finding_status.status === 'CLOSED' && (finding.finding_status.resolution === 'POTENTIAL_FALSE_POSITIVE' || finding.finding_status.resolution === 'MITIGATED') && finding.finding_status.resolution_status === 'APPROVED';
     });
-    filteredFindings.forEach((finding) => {
-        console.log(finding);
+    core.info(`Mitigated policy findings: ${mitigatedPolicyFindings.length}`);
+    const filteredFindingsArray = findingsArray.filter((finding) => {
+        return !mitigatedPolicyFindings.some((mitigatedFinding) => {
+            return finding.files.source_file.file === mitigatedFinding.finding_details.file_path
+                && +finding.cwe_id === mitigatedFinding.finding_details.cwe.id
+                && Math.abs(finding.files.source_file.line - mitigatedFinding.finding_details.file_line_number) <= LINE_NUMBER_SLOP;
+        });
     });
+    core.info(`Filtered pipeline findings: ${filteredFindingsArray.length}`);
+    console.log(filteredFindingsArray);
 }
 exports.run = run;
 

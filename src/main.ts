@@ -8,6 +8,8 @@ import * as VeracodePolicyResult from './namespaces/VeracodePolicyResult';
 import * as VeracodeApplication from './namespaces/VeracodeApplication';
 import appConfig from './app-config';
 
+const LINE_NUMBER_SLOP = 3 //adjust to allow for line number movement
+
 /**
  * Runs the action.
  */
@@ -24,10 +26,11 @@ export async function run(): Promise<void> {
   } catch (error) {
     core.debug(`Error reading or parsing filtered_results.json:${error}`);
     core.setFailed('Error reading or parsing pipeline scan results.');
+    return;
   }
 
   // TODO: if no findings, update the checks status to success
-  console.log(findingsArray.length); // Access and process the findings array
+  core.info(`Pipeline findings: ${findingsArray.length}`);
   
   const getApplicationByNameResource = {
     resourceUri: appConfig.applicationUri,
@@ -42,15 +45,16 @@ export async function run(): Promise<void> {
     core.setFailed(`No application found with name ${inputs.appname}`);
     return;
   } else if (applications.length > 1) {
-    core.setFailed(`Multiple applications found with name ${inputs.appname}`);
-    return;
+    core.info(`Multiple applications found with name ${inputs.appname}, selecting the first found`);
   }
 
   const applicationGuid = applications[0].guid;
+
+  // TODO: consider the number of findings spreads more than 1 page
   const getPolicyFindingsByApplicationResource = {
     resourceUri: `${appConfig.findingsUri}/${applicationGuid}/findings`,
     queryAttribute: 'size',
-    queryValue: '500',
+    queryValue: '1000',
   }
 
   const policyFindingsResponse: VeracodePolicyResult.ResultsData = await http.getResourceByAttribute
@@ -61,13 +65,26 @@ export async function run(): Promise<void> {
   core.info(`Policy findings: ${policyFindings.length}`);
 
   // filter out policy findings based on violates_policy = true and finding_status.status = "CLOSED" and resolution = "POTENTIAL_FALSE_POSITIVE" or "MITIGATED" and resolution_status = "APPROVED"
-  const filteredFindings = policyFindings.filter((finding) => {
+  const mitigatedPolicyFindings = policyFindings.filter((finding) => {
     return finding.violates_policy === true && finding.finding_status.status === 'CLOSED' && (finding.finding_status.resolution === 'POTENTIAL_FALSE_POSITIVE' || finding.finding_status.resolution === 'MITIGATED') && finding.finding_status.resolution_status === 'APPROVED';
   });
 
-  filteredFindings.forEach((finding) => {
-    console.log(finding);
+  core.info(`Mitigated policy findings: ${mitigatedPolicyFindings.length}`);
+
+  // Remove item in findingsArray if there are item in mitigatedPolicyFindings if the file_path and file_line_number and line_number are the same
+  const filteredFindingsArray = findingsArray.filter((finding) => {
+    return !mitigatedPolicyFindings.some((mitigatedFinding) => {
+      return finding.files.source_file.file === mitigatedFinding.finding_details.file_path 
+        && +finding.cwe_id === mitigatedFinding.finding_details.cwe.id 
+        && Math.abs(
+          finding.files.source_file.line - mitigatedFinding.finding_details.file_line_number
+        ) <= LINE_NUMBER_SLOP;
+    });
   });
+
+  core.info(`Filtered pipeline findings: ${filteredFindingsArray.length}`);
+  console.log(filteredFindingsArray);
+
 
   // const octokit = new Octokit({
   //   auth: inputs.token,
