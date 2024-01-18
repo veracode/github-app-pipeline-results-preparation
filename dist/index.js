@@ -29003,10 +29003,11 @@ const parseInputs = (getInput) => {
     const vkey = getInput('vkey', { required: true });
     const appname = getInput('appname', { required: true });
     const source_repository = getInput('source_repository', { required: true });
+    const event_trigger = getInput('event_trigger', { required: true });
     if (source_repository && source_repository.split('/').length !== 2) {
         throw new Error('source_repository needs to be in the {owner}/{repo} format');
     }
-    return { token, check_run_id: +check_run_id, vid, vkey, appname, source_repository };
+    return { token, check_run_id: +check_run_id, vid, vkey, appname, source_repository, event_trigger };
 };
 exports.parseInputs = parseInputs;
 
@@ -29047,17 +29048,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const core = __importStar(__nccwpck_require__(749));
-const inputs_1 = __nccwpck_require__(7128);
-const http = __importStar(__nccwpck_require__(7740));
 const rest_1 = __nccwpck_require__(1605);
 const fs = __importStar(__nccwpck_require__(3292));
 const Checks = __importStar(__nccwpck_require__(3973));
 const checks_1 = __nccwpck_require__(6805);
+const inputs_1 = __nccwpck_require__(7128);
+const http = __importStar(__nccwpck_require__(7740));
 const app_config_1 = __importDefault(__nccwpck_require__(2684));
 const LINE_NUMBER_SLOP = 3;
 async function run() {
     const inputs = (0, inputs_1.parseInputs)(core.getInput);
-    console.log(inputs.source_repository);
+    console.log(inputs.event_trigger);
     const repo = inputs.source_repository.split('/');
     const ownership = {
         owner: repo[0],

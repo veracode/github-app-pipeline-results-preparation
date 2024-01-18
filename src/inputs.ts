@@ -9,6 +9,7 @@ type Inputs = {
   check_run_id: number;
   appname: string;
   source_repository: string;
+  event_trigger: string;
 };
 
 export const parseInputs = (getInput: GetInput): Inputs => {
@@ -18,10 +19,11 @@ export const parseInputs = (getInput: GetInput): Inputs => {
   const vkey = getInput('vkey', { required: true });
   const appname = getInput('appname', { required: true });
   const source_repository = getInput('source_repository', { required: true });
+  const event_trigger = getInput('event_trigger', { required: true });
 
   if (source_repository && source_repository.split('/').length !== 2) {
     throw new Error('source_repository needs to be in the {owner}/{repo} format');
   }
 
-  return { token, check_run_id: +check_run_id, vid, vkey, appname, source_repository };
+  return { token, check_run_id: +check_run_id, vid, vkey, appname, source_repository, event_trigger };
 };

@@ -1,6 +1,4 @@
 import * as core from '@actions/core';
-import { parseInputs } from './inputs';
-import * as http from './api/http-request';
 import { Octokit } from '@octokit/rest';
 import * as fs from 'fs/promises';
 import * as VeracodePipelineResult from './namespaces/VeracodePipelineResult';
@@ -8,6 +6,8 @@ import * as VeracodePolicyResult from './namespaces/VeracodePolicyResult';
 import * as VeracodeApplication from './namespaces/VeracodeApplication';
 import * as Checks from './namespaces/Checks';
 import { updateChecks } from './checks';
+import { parseInputs } from './inputs';
+import * as http from './api/http-request';
 import appConfig from './app-config';
 
 const LINE_NUMBER_SLOP = 3; //adjust to allow for line number movement
@@ -17,7 +17,7 @@ const LINE_NUMBER_SLOP = 3; //adjust to allow for line number movement
  */
 export async function run(): Promise<void> {
   const inputs = parseInputs(core.getInput);
-  console.log(inputs.source_repository);
+  console.log(inputs.event_trigger);
 
   const repo = inputs.source_repository.split('/');
   const ownership = {
