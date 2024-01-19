@@ -7,7 +7,6 @@ type Inputs = {
     check_run_id: number;
     appname: string;
     source_repository: string;
-    event_trigger: string;
 };
 export declare const parseInputs: (getInput: GetInput) => Inputs;
 export {};

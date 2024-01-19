@@ -29003,11 +29003,10 @@ const parseInputs = (getInput) => {
     const vkey = getInput('vkey', { required: true });
     const appname = getInput('appname', { required: true });
     const source_repository = getInput('source_repository', { required: true });
-    const event_trigger = getInput('event_trigger', { required: true });
     if (source_repository && source_repository.split('/').length !== 2) {
         throw new Error('source_repository needs to be in the {owner}/{repo} format');
     }
-    return { token, check_run_id: +check_run_id, vid, vkey, appname, source_repository, event_trigger };
+    return { token, check_run_id: +check_run_id, vid, vkey, appname, source_repository };
 };
 exports.parseInputs = parseInputs;
 
@@ -29058,7 +29057,6 @@ const app_config_1 = __importDefault(__nccwpck_require__(2684));
 const LINE_NUMBER_SLOP = 3;
 async function run() {
     const inputs = (0, inputs_1.parseInputs)(core.getInput);
-    console.log(inputs.event_trigger);
     const repo = inputs.source_repository.split('/');
     const ownership = {
         owner: repo[0],

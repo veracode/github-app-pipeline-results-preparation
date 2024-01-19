@@ -20,9 +20,6 @@ inputs:
   source_repository:
     description: 'Source Repository'
     required: true
-  event_trigger:
-    description: 'Event Trigger of the Veracode Analysis, e.g. java-maven-pipeline-scan'
-    required: true
 runs:
   using: 'node20'
   main: 'dist/index.js'

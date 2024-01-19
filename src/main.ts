@@ -17,7 +17,6 @@ const LINE_NUMBER_SLOP = 3; //adjust to allow for line number movement
  */
 export async function run(): Promise<void> {
   const inputs = parseInputs(core.getInput);
-  console.log(inputs.event_trigger);
 
   const repo = inputs.source_repository.split('/');
   const ownership = {
