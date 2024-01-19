@@ -143,7 +143,8 @@ export async function run(): Promise<void> {
 }
 
 function getAnnotations(pipelineFindings: VeracodePipelineResult.Finding[]): Checks.Annotation[] {
-  const filePathPrefix = 'src/main/java/';
+  // const filePathPrefix = 'src/main/java/';
+  const filePathPrefix = ''; // TODO: need to get the path prefix from the source repository
   const annotations: Checks.Annotation[] = [];
   pipelineFindings.forEach(function (element) {
     const displayMessage = element.display_text

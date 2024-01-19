@@ -29139,7 +29139,7 @@ async function run() {
 }
 exports.run = run;
 function getAnnotations(pipelineFindings) {
-    const filePathPrefix = 'src/main/java/';
+    const filePathPrefix = '';
     const annotations = [];
     pipelineFindings.forEach(function (element) {
         const displayMessage = element.display_text
