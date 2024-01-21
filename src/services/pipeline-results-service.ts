@@ -106,32 +106,32 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
     const language = repoResponse.data.language;
     core.info(`Source repository language: ${language}`);
 
-    const filePathPrefix = '';
-    // if (language === 'Java') {
-    //   let pomFileExists = false;
-    //   let gradleFileExists = false;
-    //   try {
-    //     await octokit.repos.getContent({ ...ownership, path: 'pom.xml' });
-    //     pomFileExists = true;
-    //   } catch (error) {
-    //     core.debug(`Error reading or parsing source repository:${error}`);
-    //   }
-    //   try {
-    //     await octokit.repos.getContent({ ...ownership, path: 'build.gradle' });
-    //     gradleFileExists = true;
-    //   } catch (error) {
-    //     core.debug(`Error reading or parsing source repository:${error}`);
-    //   }
-    //   if (pomFileExists || gradleFileExists)
-    //     filePathPrefix = 'src/main/java/'; // Update prefix if either file exists
-    // }
+    let javaMaven = false;
+    if (language === 'Java') {
+      let pomFileExists = false;
+      let gradleFileExists = false;
+      try {
+        await octokit.repos.getContent({ ...ownership, path: 'pom.xml' });
+        pomFileExists = true;
+      } catch (error) {
+        core.debug(`Error reading or parsing source repository:${error}`);
+      }
+      try {
+        await octokit.repos.getContent({ ...ownership, path: 'build.gradle' });
+        gradleFileExists = true;
+      } catch (error) {
+        core.debug(`Error reading or parsing source repository:${error}`);
+      }
+      if (pomFileExists || gradleFileExists)
+        javaMaven = true;
+    }
 
     core.info('Pipeline findings after filtering, continue to update the github check status to failure');
     await updateChecks(
       octokit,
       checkStatic,
       Checks.Conclusion.Failure,
-      getAnnotations(filteredFindingsArray, filePathPrefix),
+      getAnnotations(filteredFindingsArray, javaMaven),
       'Here\'s the summary of the scan result.',
     );
   }
@@ -139,21 +139,30 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
 
 function getAnnotations(
   pipelineFindings: VeracodePipelineResult.Finding[], 
-  filePathPrefix:string
+  javaMaven:boolean
 ): Checks.Annotation[] {
   const annotations: Checks.Annotation[] = [];
   pipelineFindings.forEach(function (element) {
+    if (javaMaven) {
+      element.files.source_file.file = `src/main/java/${element.files.source_file.file}`;
+      if (element.files.source_file.file.includes('WEB-INF'))
+        element.files.source_file.file = element.files.source_file.file.replace(
+          /src\/main\/java\//, // Use regular expression for precise replacement
+          'src/main/webapp/');
+    }
+
     const displayMessage = element.display_text
       .replace(/<span>/g, '')
       .replace(/<\/span> /g, '\n')
       .replace(/<\/span>/g, '');
     const message =
-      `Filename: ${filePathPrefix}${element.files.source_file.file}\n` +
+      `Filename: ${element.files.source_file.file}\n` +
       `Line: ${element.files.source_file.line}\n` +
       `CWE: ${element.cwe_id} (${element.issue_type})\n\n${displayMessage}`;
 
+    
     annotations.push({
-      path: `${filePathPrefix}${element.files.source_file.file}`,
+      path: `${element.files.source_file.file}`,
       start_line: element.files.source_file.line,
       end_line: element.files.source_file.line,
       annotation_level: 'warning',

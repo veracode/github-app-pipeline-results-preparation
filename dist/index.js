@@ -29308,24 +29308,49 @@ async function preparePipelineResults(inputs) {
         const repoResponse = await octokit.repos.get(ownership);
         const language = repoResponse.data.language;
         core.info(`Source repository language: ${language}`);
-        const filePathPrefix = '';
+        let javaMaven = false;
+        if (language === 'Java') {
+            let pomFileExists = false;
+            let gradleFileExists = false;
+            try {
+                await octokit.repos.getContent(Object.assign(Object.assign({}, ownership), { path: 'pom.xml' }));
+                pomFileExists = true;
+            }
+            catch (error) {
+                core.debug(`Error reading or parsing source repository:${error}`);
+            }
+            try {
+                await octokit.repos.getContent(Object.assign(Object.assign({}, ownership), { path: 'build.gradle' }));
+                gradleFileExists = true;
+            }
+            catch (error) {
+                core.debug(`Error reading or parsing source repository:${error}`);
+            }
+            if (pomFileExists || gradleFileExists)
+                javaMaven = true;
+        }
         core.info('Pipeline findings after filtering, continue to update the github check status to failure');
-        await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, getAnnotations(filteredFindingsArray, filePathPrefix), 'Here\'s the summary of the scan result.');
+        await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, getAnnotations(filteredFindingsArray, javaMaven), 'Here\'s the summary of the scan result.');
     }
 }
 exports.preparePipelineResults = preparePipelineResults;
-function getAnnotations(pipelineFindings, filePathPrefix) {
+function getAnnotations(pipelineFindings, javaMaven) {
     const annotations = [];
     pipelineFindings.forEach(function (element) {
+        if (javaMaven) {
+            element.files.source_file.file = `src/main/java/${element.files.source_file.file}`;
+            if (element.files.source_file.file.includes('WEB-INF'))
+                element.files.source_file.file = element.files.source_file.file.replace(/src\/main\/java\//, 'src/main/webapp/');
+        }
         const displayMessage = element.display_text
             .replace(/<span>/g, '')
             .replace(/<\/span> /g, '\n')
             .replace(/<\/span>/g, '');
-        const message = `Filename: ${filePathPrefix}${element.files.source_file.file}\n` +
+        const message = `Filename: ${element.files.source_file.file}\n` +
             `Line: ${element.files.source_file.line}\n` +
             `CWE: ${element.cwe_id} (${element.issue_type})\n\n${displayMessage}`;
         annotations.push({
-            path: `${filePathPrefix}${element.files.source_file.file}`,
+            path: `${element.files.source_file.file}`,
             start_line: element.files.source_file.line,
             end_line: element.files.source_file.line,
             annotation_level: 'warning',
