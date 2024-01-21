@@ -28997,16 +28997,21 @@ exports.updateChecks = updateChecks;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.parseInputs = void 0;
 const parseInputs = (getInput) => {
-    const token = getInput('token', { required: true });
-    const check_run_id = getInput('check_run_id', { required: true });
+    const action = getInput('action', { required: true });
     const vid = getInput('vid', { required: true });
     const vkey = getInput('vkey', { required: true });
     const appname = getInput('appname', { required: true });
-    const source_repository = getInput('source_repository', { required: true });
+    const token = getInput('token');
+    const check_run_id = getInput('check_run_id');
+    const source_repository = getInput('source_repository');
+    console.log(action);
+    console.log(vid);
+    console.log(vkey);
+    console.log(appname);
     if (source_repository && source_repository.split('/').length !== 2) {
         throw new Error('source_repository needs to be in the {owner}/{repo} format');
     }
-    return { token, check_run_id: +check_run_id, vid, vkey, appname, source_repository };
+    return { action, token, check_run_id: +check_run_id, vid, vkey, appname, source_repository };
 };
 exports.parseInputs = parseInputs;
 
@@ -29057,6 +29062,8 @@ const app_config_1 = __importDefault(__nccwpck_require__(2684));
 const LINE_NUMBER_SLOP = 3;
 async function run() {
     const inputs = (0, inputs_1.parseInputs)(core.getInput);
+    if (inputs.action === 'getPolicyNameByProfileName')
+        return;
     const repo = inputs.source_repository.split('/');
     const ownership = {
         owner: repo[0],

@@ -2,11 +2,8 @@ name: 'Veracode Pipeline Scan Resutls'
 description: 'Process Veracode Pipeline Scan Results and close a check run on GitHub'
 author: 'Vincent Deng'
 inputs:
-  token:
-    description: 'your GITHUB_TOKEN'
-    required: true
-  check_run_id:
-    description: 'GitHub Check Run ID'
+  action:
+    description: 'Action to take'
     required: true
   vid:
     description: 'Veracode ID'
@@ -17,9 +14,15 @@ inputs:
   appname:
     description: 'Veracode Application Name'
     required: true
+  token:
+    description: 'your GITHUB_TOKEN'
+    required: false
+  check_run_id:
+    description: 'GitHub Check Run ID'
+    required: false
   source_repository:
     description: 'Source Repository'
-    required: true
+    required: false
 runs:
   using: 'node20'
   main: 'dist/index.js'
