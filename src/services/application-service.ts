@@ -4,9 +4,9 @@ import * as VeracodeApplication from '../namespaces/VeracodeApplication';
 import * as http from '../api/http-request';
 
 export async function getApplicationByName(
-  appname: string, 
-  vid: string, 
-  vkey: string
+  appname: string,
+  vid: string,
+  vkey: string,
 ): Promise<VeracodeApplication.Application> {
   const getApplicationByNameResource = {
     resourceUri: appConfig.applicationUri,
@@ -15,12 +15,8 @@ export async function getApplicationByName(
   };
 
   const applicationResponse: VeracodeApplication.ResultsData =
-    await http.getResourceByAttribute<VeracodeApplication.ResultsData>(
-      vid,
-      vkey,
-      getApplicationByNameResource,
-    );
-  
+    await http.getResourceByAttribute<VeracodeApplication.ResultsData>(vid, vkey, getApplicationByNameResource);
+
   const applications = applicationResponse._embedded.applications;
   if (applications.length === 0) {
     core.setFailed(`No application found with name ${appname}`);

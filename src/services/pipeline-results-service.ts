@@ -28,9 +28,6 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
     auth: inputs.token,
   });
 
-
-
-
   let findingsArray: VeracodePipelineResult.Finding[] = [];
 
   try {
@@ -42,7 +39,11 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
     core.setFailed('Error reading or parsing pipeline scan results.');
     // TODO: Based on the veracode.yml, update the checks status to failure or pass
     await updateChecks(
-      octokit, checkStatic, Checks.Conclusion.Failure, [], 'Error reading or parsing pipeline scan results.'
+      octokit,
+      checkStatic,
+      Checks.Conclusion.Failure,
+      [],
+      'Error reading or parsing pipeline scan results.',
     );
     return;
   }
@@ -98,7 +99,6 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
     await updateChecks(octokit, checkStatic, Checks.Conclusion.Success, [], 'No pipeline findings');
     return;
   } else {
-
     // use octokit to check the language of the source repository. If it is a java project, then
     // use octokit to check if the source repository is using java maven or java gradle
     // if so, filePathPrefix = 'src/main/java/'
@@ -122,8 +122,7 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
       } catch (error) {
         core.debug(`Error reading or parsing source repository:${error}`);
       }
-      if (pomFileExists || gradleFileExists)
-        javaMaven = true;
+      if (pomFileExists || gradleFileExists) javaMaven = true;
     }
 
     core.info('Pipeline findings after filtering, continue to update the github check status to failure');
@@ -137,10 +136,7 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
   }
 }
 
-function getAnnotations(
-  pipelineFindings: VeracodePipelineResult.Finding[], 
-  javaMaven:boolean
-): Checks.Annotation[] {
+function getAnnotations(pipelineFindings: VeracodePipelineResult.Finding[], javaMaven: boolean): Checks.Annotation[] {
   const annotations: Checks.Annotation[] = [];
   pipelineFindings.forEach(function (element) {
     if (javaMaven) {
@@ -148,7 +144,8 @@ function getAnnotations(
       if (element.files.source_file.file.includes('WEB-INF'))
         element.files.source_file.file = element.files.source_file.file.replace(
           /src\/main\/java\//, // Use regular expression for precise replacement
-          'src/main/webapp/');
+          'src/main/webapp/',
+        );
     }
 
     const displayMessage = element.display_text
@@ -160,7 +157,6 @@ function getAnnotations(
       `Line: ${element.files.source_file.line}\n` +
       `CWE: ${element.cwe_id} (${element.issue_type})\n\n${displayMessage}`;
 
-    
     annotations.push({
       path: `${element.files.source_file.file}`,
       start_line: element.files.source_file.line,

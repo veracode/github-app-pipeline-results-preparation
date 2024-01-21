@@ -28977,7 +28977,7 @@ var Actions;
 const parseInputs = (getInput) => {
     const action = getInput('action', { required: true });
     if (!Object.values(Actions).includes(action)) {
-        throw new Error(`Invalid action: ${action}. It must be one of '${Object.values(Actions).join('\' or \'')}'.`);
+        throw new Error(`Invalid action: ${action}. It must be one of '${Object.values(Actions).join("' or '")}'.`);
     }
     const vid = getInput('vid', { required: true });
     const vkey = getInput('vkey', { required: true });

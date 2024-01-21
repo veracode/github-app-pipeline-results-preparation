@@ -17,6 +17,8 @@ export async function run(): Promise<void> {
       await pipelineResultsService.preparePipelineResults(inputs);
       break;
     default:
-      core.setFailed(`Invalid action: ${inputs.action}. Allowed actions are: getPolicyNameByProfileName, preparePipelineResults`);
+      core.setFailed(
+        `Invalid action: ${inputs.action}. Allowed actions are: getPolicyNameByProfileName, preparePipelineResults`,
+      );
   }
 }
