@@ -2,8 +2,10 @@ import { InputOptions } from '@actions/core';
 
 type GetInput = (name: string, options?: InputOptions | undefined) => string;
 
-type Actions = 'getPolicyNameByProfileName' | 'preparePipelineResults';
-
+enum Actions {
+  GetPolicyNameByProfileName = 'getPolicyNameByProfileName',
+  PreparePipelineResults = 'preparePipelineResults',
+}
 type Inputs = {
   action: Actions;
   vid: string;
@@ -16,6 +18,12 @@ type Inputs = {
 
 export const parseInputs = (getInput: GetInput): Inputs => {
   const action = getInput('action', { required: true }) as Actions;
+
+  // Validate the action value
+  if (!Object.values(Actions).includes(action)) {
+    throw new Error(`Invalid action: ${action}. It must be one of '${Object.values(Actions).join('\' or \'')}'.`);
+  }
+
   const vid = getInput('vid', { required: true });
   const vkey = getInput('vkey', { required: true });
   const appname = getInput('appname', { required: true });
@@ -23,11 +31,6 @@ export const parseInputs = (getInput: GetInput): Inputs => {
   const token = getInput('token');
   const check_run_id = getInput('check_run_id');
   const source_repository = getInput('source_repository');
-
-  console.log(action);
-  console.log(vid);
-  console.log(vkey);
-  console.log(appname);
 
   if (source_repository && source_repository.split('/').length !== 2) {
     throw new Error('source_repository needs to be in the {owner}/{repo} format');

@@ -28996,18 +28996,22 @@ exports.updateChecks = updateChecks;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.parseInputs = void 0;
+var Actions;
+(function (Actions) {
+    Actions["GetPolicyNameByProfileName"] = "getPolicyNameByProfileName";
+    Actions["PreparePipelineResults"] = "preparePipelineResults";
+})(Actions || (Actions = {}));
 const parseInputs = (getInput) => {
     const action = getInput('action', { required: true });
+    if (!Object.values(Actions).includes(action)) {
+        throw new Error(`Invalid action: ${action}. It must be one of '${Object.values(Actions).join('\' or \'')}'.`);
+    }
     const vid = getInput('vid', { required: true });
     const vkey = getInput('vkey', { required: true });
     const appname = getInput('appname', { required: true });
     const token = getInput('token');
     const check_run_id = getInput('check_run_id');
     const source_repository = getInput('source_repository');
-    console.log(action);
-    console.log(vid);
-    console.log(vkey);
-    console.log(appname);
     if (source_repository && source_repository.split('/').length !== 2) {
         throw new Error('source_repository needs to be in the {owner}/{repo} format');
     }

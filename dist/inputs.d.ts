@@ -1,6 +1,9 @@
 import { InputOptions } from '@actions/core';
 type GetInput = (name: string, options?: InputOptions | undefined) => string;
-type Actions = 'getPolicyNameByProfileName' | 'preparePipelineResults';
+declare enum Actions {
+    GetPolicyNameByProfileName = "getPolicyNameByProfileName",
+    PreparePipelineResults = "preparePipelineResults"
+}
 type Inputs = {
     action: Actions;
     vid: string;
