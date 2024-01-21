@@ -29308,13 +29308,26 @@ async function preparePipelineResults(inputs) {
         const repoResponse = await octokit.repos.get(ownership);
         const language = repoResponse.data.language;
         core.info(`Source repository language: ${language}`);
+        let filePathPrefix = '';
+        if (language === 'Java') {
+            try {
+                await Promise.all([
+                    octokit.repos.getContent(Object.assign(Object.assign({}, ownership), { path: 'pom.xml' })),
+                    octokit.repos.getContent(Object.assign(Object.assign({}, ownership), { path: 'build.gradle' })),
+                ]);
+                filePathPrefix = 'src/java/main';
+            }
+            catch (error) {
+                core.debug(`Error reading or parsing source repository:${error}`);
+                core.setFailed('Error reading or parsing source repository.');
+            }
+        }
         core.info('Pipeline findings after filtering, continue to update the github check status to failure');
-        await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, getAnnotations(filteredFindingsArray), 'Here\'s the summary of the scan result.');
+        await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, getAnnotations(filteredFindingsArray, filePathPrefix), 'Here\'s the summary of the scan result.');
     }
 }
 exports.preparePipelineResults = preparePipelineResults;
-function getAnnotations(pipelineFindings) {
-    const filePathPrefix = '';
+function getAnnotations(pipelineFindings, filePathPrefix) {
     const annotations = [];
     pipelineFindings.forEach(function (element) {
         const displayMessage = element.display_text

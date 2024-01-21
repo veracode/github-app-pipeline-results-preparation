@@ -106,29 +106,38 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
       const language = repoResponse.data.language;
       core.info(`Source repository language: ${language}`);
 
-      // using octokit to check if the source repository is using java maven or java gradle
-      // const contentsResponse = await octokit.repos.getContent({
-      //   ...ownership,
-      //   path: 'build.gradle',
-      // });
-      // const contents = contentsResponse.data;
-      // core.info(`Source repository contents: ${contents}`);
+      let filePathPrefix = '';
 
+      if (language === 'Java') {
+        try {
+          await Promise.all([
+            octokit.repos.getContent({ ...ownership, path: 'pom.xml' }),
+            octokit.repos.getContent({ ...ownership, path: 'build.gradle' }),
+          ]);
+      
+          filePathPrefix = 'src/java/main'; // Update prefix if either file exists
+      
+        } catch (error) {
+          core.debug(`Error reading or parsing source repository:${error}`);
+          core.setFailed('Error reading or parsing source repository.');
+        }
+      }
 
     core.info('Pipeline findings after filtering, continue to update the github check status to failure');
     await updateChecks(
       octokit,
       checkStatic,
       Checks.Conclusion.Failure,
-      getAnnotations(filteredFindingsArray),
+      getAnnotations(filteredFindingsArray, filePathPrefix),
       'Here\'s the summary of the scan result.',
     );
   }
 }
 
-function getAnnotations(pipelineFindings: VeracodePipelineResult.Finding[]): Checks.Annotation[] {
-  // const filePathPrefix = 'src/main/java/';
-  const filePathPrefix = ''; // TODO: need to get the path prefix from the source repository
+function getAnnotations(
+  pipelineFindings: VeracodePipelineResult.Finding[], 
+  filePathPrefix:string
+): Checks.Annotation[] {
   const annotations: Checks.Annotation[] = [];
   pipelineFindings.forEach(function (element) {
     const displayMessage = element.display_text
