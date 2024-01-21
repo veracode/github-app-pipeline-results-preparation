@@ -29309,15 +29309,22 @@ async function preparePipelineResults(inputs) {
         const language = repoResponse.data.language;
         core.info(`Source repository language: ${language}`);
         let filePathPrefix = '';
+        let pomFileExists = false;
+        let gradleFileExists = false;
         if (language === 'Java') {
             try {
-                await Promise.all([
+                const [pomResponse, gradleResponse] = await Promise.all([
                     octokit.repos.getContent(Object.assign(Object.assign({}, ownership), { path: 'pom.xml' })),
+                    octokit.repos.getContent(Object.assign(Object.assign({}, ownership), { path: 'build.gradle' })),
                 ]);
-                filePathPrefix = 'src/java/main';
+                pomFileExists = !!pomResponse.data;
+                gradleFileExists = !!gradleResponse.data;
+                if (pomFileExists || gradleFileExists) {
+                    filePathPrefix = 'src/main/java';
+                }
             }
             catch (error) {
-                core.debug(`Error reading or parsing source repository:${error}`);
+                core.debug(`Error checking for files: ${error}`);
             }
         }
         core.info('Pipeline findings after filtering, continue to update the github check status to failure');
