@@ -29308,27 +29308,7 @@ async function preparePipelineResults(inputs) {
         const repoResponse = await octokit.repos.get(ownership);
         const language = repoResponse.data.language;
         core.info(`Source repository language: ${language}`);
-        let filePathPrefix = '';
-        if (language === 'Java') {
-            let pomFileExists = false;
-            let gradleFileExists = false;
-            try {
-                await octokit.repos.getContent(Object.assign(Object.assign({}, ownership), { path: 'pom.xml' }));
-                pomFileExists = true;
-            }
-            catch (error) {
-                core.debug(`Error reading or parsing source repository:${error}`);
-            }
-            try {
-                await octokit.repos.getContent(Object.assign(Object.assign({}, ownership), { path: 'build.gradle' }));
-                gradleFileExists = true;
-            }
-            catch (error) {
-                core.debug(`Error reading or parsing source repository:${error}`);
-            }
-            if (pomFileExists || gradleFileExists)
-                filePathPrefix = 'src/main/java';
-        }
+        const filePathPrefix = '';
         core.info('Pipeline findings after filtering, continue to update the github check status to failure');
         await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, getAnnotations(filteredFindingsArray, filePathPrefix), 'Here\'s the summary of the scan result.');
     }

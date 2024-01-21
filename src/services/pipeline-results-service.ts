@@ -106,25 +106,25 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
     const language = repoResponse.data.language;
     core.info(`Source repository language: ${language}`);
 
-    let filePathPrefix = '';
-    if (language === 'Java') {
-      let pomFileExists = false;
-      let gradleFileExists = false;
-      try {
-        await octokit.repos.getContent({ ...ownership, path: 'pom.xml' });
-        pomFileExists = true;
-      } catch (error) {
-        core.debug(`Error reading or parsing source repository:${error}`);
-      }
-      try {
-        await octokit.repos.getContent({ ...ownership, path: 'build.gradle' });
-        gradleFileExists = true;
-      } catch (error) {
-        core.debug(`Error reading or parsing source repository:${error}`);
-      }
-      if (pomFileExists || gradleFileExists)
-        filePathPrefix = 'src/main/java'; // Update prefix if either file exists
-    }
+    const filePathPrefix = '';
+    // if (language === 'Java') {
+    //   let pomFileExists = false;
+    //   let gradleFileExists = false;
+    //   try {
+    //     await octokit.repos.getContent({ ...ownership, path: 'pom.xml' });
+    //     pomFileExists = true;
+    //   } catch (error) {
+    //     core.debug(`Error reading or parsing source repository:${error}`);
+    //   }
+    //   try {
+    //     await octokit.repos.getContent({ ...ownership, path: 'build.gradle' });
+    //     gradleFileExists = true;
+    //   } catch (error) {
+    //     core.debug(`Error reading or parsing source repository:${error}`);
+    //   }
+    //   if (pomFileExists || gradleFileExists)
+    //     filePathPrefix = 'src/main/java/'; // Update prefix if either file exists
+    // }
 
     core.info('Pipeline findings after filtering, continue to update the github check status to failure');
     await updateChecks(
