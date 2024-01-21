@@ -29313,13 +29313,11 @@ async function preparePipelineResults(inputs) {
             try {
                 await Promise.all([
                     octokit.repos.getContent(Object.assign(Object.assign({}, ownership), { path: 'pom.xml' })),
-                    octokit.repos.getContent(Object.assign(Object.assign({}, ownership), { path: 'build.gradle' })),
                 ]);
                 filePathPrefix = 'src/java/main';
             }
             catch (error) {
                 core.debug(`Error reading or parsing source repository:${error}`);
-                core.setFailed('Error reading or parsing source repository.');
             }
         }
         core.info('Pipeline findings after filtering, continue to update the github check status to failure');
