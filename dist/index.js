@@ -29063,11 +29063,14 @@ const checks_1 = __nccwpck_require__(6805);
 const inputs_1 = __nccwpck_require__(7128);
 const http = __importStar(__nccwpck_require__(7740));
 const app_config_1 = __importDefault(__nccwpck_require__(2684));
+const PolicyService = __importStar(__nccwpck_require__(6834));
 const LINE_NUMBER_SLOP = 3;
 async function run() {
     const inputs = (0, inputs_1.parseInputs)(core.getInput);
-    if (inputs.action === 'getPolicyNameByProfileName')
+    if (inputs.action === 'getPolicyNameByProfileName') {
+        await PolicyService.getPolicyNameByProfileName(inputs);
         return;
+    }
     const repo = inputs.source_repository.split('/');
     const ownership = {
         owner: repo[0],
@@ -29198,6 +29201,105 @@ var Status;
     Status["InProgress"] = "in_progress";
     Status["Completed"] = "completed";
 })(Status || (exports.Status = Status = {}));
+
+
+/***/ }),
+
+/***/ 8560:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getApplicationByName = void 0;
+const core = __importStar(__nccwpck_require__(749));
+const app_config_1 = __importDefault(__nccwpck_require__(2684));
+const http = __importStar(__nccwpck_require__(7740));
+async function getApplicationByName(appname, vid, vkey) {
+    const getApplicationByNameResource = {
+        resourceUri: app_config_1.default.applicationUri,
+        queryAttribute: 'name',
+        queryValue: encodeURIComponent(appname),
+    };
+    const applicationResponse = await http.getResourceByAttribute(vid, vkey, getApplicationByNameResource);
+    const applications = applicationResponse._embedded.applications;
+    if (applications.length === 0) {
+        core.setFailed(`No application found with name ${appname}`);
+        throw new Error(`No application found with name ${appname}`);
+    }
+    else if (applications.length > 1) {
+        core.info(`Multiple applications found with name ${appname}, selecting the first found`);
+    }
+    return applications[0];
+}
+exports.getApplicationByName = getApplicationByName;
+
+
+/***/ }),
+
+/***/ 6834:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getPolicyNameByProfileName = void 0;
+const core = __importStar(__nccwpck_require__(749));
+const ApplicationService = __importStar(__nccwpck_require__(8560));
+async function getPolicyNameByProfileName(inputs) {
+    const application = await ApplicationService.getApplicationByName(inputs.appname, inputs.vid, inputs.vkey);
+    core.setOutput('policy_name', application.profile.policies[0].name);
+}
+exports.getPolicyNameByProfileName = getPolicyNameByProfileName;
 
 
 /***/ }),

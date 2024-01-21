@@ -9,6 +9,7 @@ import { updateChecks } from './checks';
 import { parseInputs } from './inputs';
 import * as http from './api/http-request';
 import appConfig from './app-config';
+import * as PolicyService from './services/policy-service';
 
 const LINE_NUMBER_SLOP = 3; //adjust to allow for line number movement
 
@@ -18,8 +19,10 @@ const LINE_NUMBER_SLOP = 3; //adjust to allow for line number movement
 export async function run(): Promise<void> {
   const inputs = parseInputs(core.getInput);
 
-  if (inputs.action === 'getPolicyNameByProfileName') 
+  if (inputs.action === 'getPolicyNameByProfileName') {
+    await PolicyService.getPolicyNameByProfileName(inputs);
     return;
+  }
 
   const repo = inputs.source_repository.split('/');
   const ownership = {

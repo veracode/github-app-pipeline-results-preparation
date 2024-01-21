@@ -4,7 +4,7 @@ declare enum Actions {
     GetPolicyNameByProfileName = "getPolicyNameByProfileName",
     PreparePipelineResults = "preparePipelineResults"
 }
-type Inputs = {
+export type Inputs = {
     action: Actions;
     vid: string;
     vkey: string;
