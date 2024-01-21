@@ -28,6 +28,9 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
     auth: inputs.token,
   });
 
+
+
+
   let findingsArray: VeracodePipelineResult.Finding[] = [];
 
   try {
@@ -95,6 +98,23 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
     await updateChecks(octokit, checkStatic, Checks.Conclusion.Success, [], 'No pipeline findings');
     return;
   } else {
+
+      // use octokit to check the language of the source repository. If it is a java project, then
+      // use octokit to check if the source repository is using java maven or java gradle
+      // if so, filePathPrefix = 'src/main/java/'
+      const repoResponse = await octokit.repos.get(ownership);
+      const language = repoResponse.data.language;
+      core.info(`Source repository language: ${language}`);
+
+      // using octokit to check if the source repository is using java maven or java gradle
+      // const contentsResponse = await octokit.repos.getContent({
+      //   ...ownership,
+      //   path: 'build.gradle',
+      // });
+      // const contents = contentsResponse.data;
+      // core.info(`Source repository contents: ${contents}`);
+
+
     core.info('Pipeline findings after filtering, continue to update the github check status to failure');
     await updateChecks(
       octokit,

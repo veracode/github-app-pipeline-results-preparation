@@ -29305,6 +29305,9 @@ async function preparePipelineResults(inputs) {
         return;
     }
     else {
+        const repoResponse = await octokit.repos.get(ownership);
+        const language = repoResponse.data.language;
+        core.info(`Source repository language: ${language}`);
         core.info('Pipeline findings after filtering, continue to update the github check status to failure');
         await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, getAnnotations(filteredFindingsArray), 'Here\'s the summary of the scan result.');
     }
