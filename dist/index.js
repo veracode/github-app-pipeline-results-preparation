@@ -28962,33 +28962,6 @@ exports["default"] = appConfig;
 
 /***/ }),
 
-/***/ 6805:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.updateChecks = void 0;
-async function updateChecks(octokit, checksStatic, conclusion, annotations, summary) {
-    const data = {
-        owner: checksStatic.owner,
-        repo: checksStatic.repo,
-        check_run_id: checksStatic.check_run_id,
-        status: checksStatic.status,
-        conclusion: conclusion,
-        output: {
-            annotations: annotations,
-            title: 'Veracode Static Code Analysis',
-            summary: summary,
-        },
-    };
-    await octokit.checks.update(data);
-}
-exports.updateChecks = updateChecks;
-
-
-/***/ }),
-
 /***/ 7128:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -29050,130 +29023,26 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const core = __importStar(__nccwpck_require__(749));
-const rest_1 = __nccwpck_require__(1605);
-const fs = __importStar(__nccwpck_require__(3292));
-const Checks = __importStar(__nccwpck_require__(3973));
-const checks_1 = __nccwpck_require__(6805);
 const inputs_1 = __nccwpck_require__(7128);
-const http = __importStar(__nccwpck_require__(7740));
-const app_config_1 = __importDefault(__nccwpck_require__(2684));
-const PolicyService = __importStar(__nccwpck_require__(6834));
-const LINE_NUMBER_SLOP = 3;
+const policyService = __importStar(__nccwpck_require__(6834));
+const pipelineResultsService = __importStar(__nccwpck_require__(7328));
 async function run() {
     const inputs = (0, inputs_1.parseInputs)(core.getInput);
-    if (inputs.action === 'getPolicyNameByProfileName') {
-        await PolicyService.getPolicyNameByProfileName(inputs);
-        return;
-    }
-    const repo = inputs.source_repository.split('/');
-    const ownership = {
-        owner: repo[0],
-        repo: repo[1],
-    };
-    const checkStatic = {
-        owner: ownership.owner,
-        repo: ownership.repo,
-        check_run_id: inputs.check_run_id,
-        status: Checks.Status.Completed,
-    };
-    let findingsArray = [];
-    try {
-        const data = await fs.readFile('filtered_results.json', 'utf-8');
-        const parsedData = JSON.parse(data);
-        findingsArray = parsedData.findings;
-    }
-    catch (error) {
-        core.debug(`Error reading or parsing filtered_results.json:${error}`);
-        core.setFailed('Error reading or parsing pipeline scan results.');
-        return;
-    }
-    const octokit = new rest_1.Octokit({
-        auth: inputs.token,
-    });
-    core.info(`Pipeline findings: ${findingsArray.length}`);
-    if (findingsArray.length === 0) {
-        core.info('No pipeline findings, exiting and update the github check status to success');
-        await (0, checks_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Success, [], 'No pipeline findings');
-        return;
-    }
-    const getApplicationByNameResource = {
-        resourceUri: app_config_1.default.applicationUri,
-        queryAttribute: 'name',
-        queryValue: encodeURIComponent(inputs.appname),
-    };
-    const applicationResponse = await http.getResourceByAttribute(inputs.vid, inputs.vkey, getApplicationByNameResource);
-    const applications = applicationResponse._embedded.applications;
-    if (applications.length === 0) {
-        core.setFailed(`No application found with name ${inputs.appname}`);
-        return;
-    }
-    else if (applications.length > 1) {
-        core.info(`Multiple applications found with name ${inputs.appname}, selecting the first found`);
-    }
-    const applicationGuid = applications[0].guid;
-    const getPolicyFindingsByApplicationResource = {
-        resourceUri: `${app_config_1.default.findingsUri}/${applicationGuid}/findings`,
-        queryAttribute: 'size',
-        queryValue: '1000',
-    };
-    const policyFindingsResponse = await http.getResourceByAttribute(inputs.vid, inputs.vkey, getPolicyFindingsByApplicationResource);
-    const policyFindings = policyFindingsResponse._embedded.findings;
-    core.info(`Policy findings: ${policyFindings.length}`);
-    const mitigatedPolicyFindings = policyFindings.filter((finding) => {
-        return (finding.violates_policy === true &&
-            finding.finding_status.status === 'CLOSED' &&
-            (finding.finding_status.resolution === 'POTENTIAL_FALSE_POSITIVE' ||
-                finding.finding_status.resolution === 'MITIGATED') &&
-            finding.finding_status.resolution_status === 'APPROVED');
-    });
-    core.info(`Mitigated policy findings: ${mitigatedPolicyFindings.length}`);
-    const filteredFindingsArray = findingsArray.filter((finding) => {
-        return !mitigatedPolicyFindings.some((mitigatedFinding) => {
-            return (finding.files.source_file.file === mitigatedFinding.finding_details.file_path &&
-                +finding.cwe_id === mitigatedFinding.finding_details.cwe.id &&
-                Math.abs(finding.files.source_file.line - mitigatedFinding.finding_details.file_line_number) <= LINE_NUMBER_SLOP);
-        });
-    });
-    core.info(`Filtered pipeline findings: ${filteredFindingsArray.length}`);
-    if (filteredFindingsArray.length === 0) {
-        core.info('No pipeline findings after filtering, exiting and update the github check status to success');
-        await (0, checks_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Success, [], 'No pipeline findings');
-        return;
-    }
-    else {
-        core.info('Pipeline findings after filtering, continue to update the github check status to failure');
-        await (0, checks_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, getAnnotations(filteredFindingsArray), 'Here\'s the summary of the scan result.');
+    switch (inputs.action) {
+        case 'getPolicyNameByProfileName':
+            await policyService.getPolicyNameByProfileName(inputs);
+            break;
+        case 'preparePipelineResults':
+            await pipelineResultsService.preparePipelineResults(inputs);
+            break;
+        default:
+            core.setFailed(`Invalid action: ${inputs.action}. Allowed actions are: getPolicyNameByProfileName, preparePipelineResults`);
     }
 }
 exports.run = run;
-function getAnnotations(pipelineFindings) {
-    const filePathPrefix = '';
-    const annotations = [];
-    pipelineFindings.forEach(function (element) {
-        const displayMessage = element.display_text
-            .replace(/<span>/g, '')
-            .replace(/<\/span> /g, '\n')
-            .replace(/<\/span>/g, '');
-        const message = `Filename: ${filePathPrefix}${element.files.source_file.file}\n` +
-            `Line: ${element.files.source_file.line}\n` +
-            `CWE: ${element.cwe_id} (${element.issue_type})\n\n${displayMessage}`;
-        annotations.push({
-            path: `${filePathPrefix}${element.files.source_file.file}`,
-            start_line: element.files.source_file.line,
-            end_line: element.files.source_file.line,
-            annotation_level: 'warning',
-            title: element.issue_type,
-            message: message,
-        });
-    });
-    return annotations;
-}
 
 
 /***/ }),
@@ -29259,6 +29128,210 @@ async function getApplicationByName(appname, vid, vkey) {
     return applications[0];
 }
 exports.getApplicationByName = getApplicationByName;
+
+
+/***/ }),
+
+/***/ 3686:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.updateChecks = void 0;
+async function updateChecks(octokit, checksStatic, conclusion, annotations, summary) {
+    const data = {
+        owner: checksStatic.owner,
+        repo: checksStatic.repo,
+        check_run_id: checksStatic.check_run_id,
+        status: checksStatic.status,
+        conclusion: conclusion,
+        output: {
+            annotations: annotations,
+            title: 'Veracode Static Code Analysis',
+            summary: summary,
+        },
+    };
+    await octokit.checks.update(data);
+}
+exports.updateChecks = updateChecks;
+
+
+/***/ }),
+
+/***/ 3747:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getApplicationFindings = void 0;
+const app_config_1 = __importDefault(__nccwpck_require__(2684));
+const http = __importStar(__nccwpck_require__(7740));
+async function getApplicationFindings(appGuid, vid, vkey) {
+    const getPolicyFindingsByApplicationResource = {
+        resourceUri: `${app_config_1.default.findingsUri}/${appGuid}/findings`,
+        queryAttribute: 'size',
+        queryValue: '1000',
+    };
+    const findingsResponse = await http.getResourceByAttribute(vid, vkey, getPolicyFindingsByApplicationResource);
+    return findingsResponse._embedded.findings;
+}
+exports.getApplicationFindings = getApplicationFindings;
+
+
+/***/ }),
+
+/***/ 7328:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.preparePipelineResults = void 0;
+const core = __importStar(__nccwpck_require__(749));
+const rest_1 = __nccwpck_require__(1605);
+const fs = __importStar(__nccwpck_require__(3292));
+const Checks = __importStar(__nccwpck_require__(3973));
+const check_service_1 = __nccwpck_require__(3686);
+const application_service_1 = __nccwpck_require__(8560);
+const findings_service_1 = __nccwpck_require__(3747);
+const LINE_NUMBER_SLOP = 3;
+async function preparePipelineResults(inputs) {
+    const repo = inputs.source_repository.split('/');
+    const ownership = {
+        owner: repo[0],
+        repo: repo[1],
+    };
+    const checkStatic = {
+        owner: ownership.owner,
+        repo: ownership.repo,
+        check_run_id: inputs.check_run_id,
+        status: Checks.Status.Completed,
+    };
+    const octokit = new rest_1.Octokit({
+        auth: inputs.token,
+    });
+    let findingsArray = [];
+    try {
+        const data = await fs.readFile('filtered_results.json', 'utf-8');
+        const parsedData = JSON.parse(data);
+        findingsArray = parsedData.findings;
+    }
+    catch (error) {
+        core.debug(`Error reading or parsing filtered_results.json:${error}`);
+        core.setFailed('Error reading or parsing pipeline scan results.');
+        await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, [], 'Error reading or parsing pipeline scan results.');
+        return;
+    }
+    core.info(`Pipeline findings: ${findingsArray.length}`);
+    if (findingsArray.length === 0) {
+        core.info('No pipeline findings, exiting and update the github check status to success');
+        await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Success, [], 'No pipeline findings');
+        return;
+    }
+    const application = await (0, application_service_1.getApplicationByName)(inputs.appname, inputs.vid, inputs.vkey);
+    const applicationGuid = application.guid;
+    const policyFindings = await (0, findings_service_1.getApplicationFindings)(applicationGuid, inputs.vid, inputs.vkey);
+    core.info(`Policy findings: ${policyFindings.length}`);
+    const mitigatedPolicyFindings = policyFindings.filter((finding) => {
+        return (finding.violates_policy === true &&
+            finding.finding_status.status === 'CLOSED' &&
+            (finding.finding_status.resolution === 'POTENTIAL_FALSE_POSITIVE' ||
+                finding.finding_status.resolution === 'MITIGATED') &&
+            finding.finding_status.resolution_status === 'APPROVED');
+    });
+    core.info(`Mitigated policy findings: ${mitigatedPolicyFindings.length}`);
+    const filteredFindingsArray = findingsArray.filter((finding) => {
+        return !mitigatedPolicyFindings.some((mitigatedFinding) => {
+            return (finding.files.source_file.file === mitigatedFinding.finding_details.file_path &&
+                +finding.cwe_id === mitigatedFinding.finding_details.cwe.id &&
+                Math.abs(finding.files.source_file.line - mitigatedFinding.finding_details.file_line_number) <= LINE_NUMBER_SLOP);
+        });
+    });
+    core.info(`Filtered pipeline findings: ${filteredFindingsArray.length}`);
+    if (filteredFindingsArray.length === 0) {
+        core.info('No pipeline findings after filtering, exiting and update the github check status to success');
+        await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Success, [], 'No pipeline findings');
+        return;
+    }
+    else {
+        core.info('Pipeline findings after filtering, continue to update the github check status to failure');
+        await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, getAnnotations(filteredFindingsArray), 'Here\'s the summary of the scan result.');
+    }
+}
+exports.preparePipelineResults = preparePipelineResults;
+function getAnnotations(pipelineFindings) {
+    const filePathPrefix = '';
+    const annotations = [];
+    pipelineFindings.forEach(function (element) {
+        const displayMessage = element.display_text
+            .replace(/<span>/g, '')
+            .replace(/<\/span> /g, '\n')
+            .replace(/<\/span>/g, '');
+        const message = `Filename: ${filePathPrefix}${element.files.source_file.file}\n` +
+            `Line: ${element.files.source_file.line}\n` +
+            `CWE: ${element.cwe_id} (${element.issue_type})\n\n${displayMessage}`;
+        annotations.push({
+            path: `${filePathPrefix}${element.files.source_file.file}`,
+            start_line: element.files.source_file.line,
+            end_line: element.files.source_file.line,
+            annotation_level: 'warning',
+            title: element.issue_type,
+            message: message,
+        });
+    });
+    return annotations;
+}
 
 
 /***/ }),
