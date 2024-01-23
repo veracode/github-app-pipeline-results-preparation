@@ -29044,7 +29044,7 @@ async function run() {
             await policyResultsService.preparePolicyResults(inputs);
             break;
         default:
-            core.setFailed(`Invalid action: ${inputs.action}. Allowed actions are: getPolicyNameByProfileName, preparePipelineResults`);
+            core.setFailed(`Invalid action: ${inputs.action}. Allowed actions are: getPolicyNameByProfileName, preparePipelineResults, preparePolicyResults.`);
     }
 }
 exports.run = run;
@@ -29400,21 +29400,42 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.preparePolicyResults = void 0;
 const core = __importStar(__nccwpck_require__(749));
+const rest_1 = __nccwpck_require__(1605);
 const fs = __importStar(__nccwpck_require__(3292));
+const Checks = __importStar(__nccwpck_require__(3973));
+const check_service_1 = __nccwpck_require__(3686);
 async function preparePolicyResults(inputs) {
-    console.log(inputs);
-    let data1;
-    let data2;
+    const repo = inputs.source_repository.split('/');
+    const ownership = {
+        owner: repo[0],
+        repo: repo[1],
+    };
+    const checkStatic = {
+        owner: ownership.owner,
+        repo: ownership.repo,
+        check_run_id: inputs.check_run_id,
+        status: Checks.Status.Completed,
+    };
+    const octokit = new rest_1.Octokit({
+        auth: inputs.token,
+    });
+    let findingsArray = [];
+    let resultsUrl = '';
     try {
-        data1 = await fs.readFile('policy_flaws.json', 'utf-8');
-        data2 = await fs.readFile('results_url.txt', 'utf-8');
+        const data = await fs.readFile('policy_flaws.json', 'utf-8');
+        const parsedData = JSON.parse(data);
+        findingsArray = parsedData.findings;
+        resultsUrl = await fs.readFile('results_url.txt', 'utf-8');
     }
     catch (error) {
         core.debug(`Error reading or parsing filtered_results.json:${error}`);
         core.setFailed('Error reading or parsing pipeline scan results.');
+        await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, [], 'Error reading or parsing pipeline scan results.');
+        return;
     }
-    console.log(data1);
-    console.log(data2);
+    console.log(findingsArray);
+    core.info(`Policy findings: ${findingsArray.length}`);
+    core.info(`Results URL: ${resultsUrl}`);
 }
 exports.preparePolicyResults = preparePolicyResults;
 
