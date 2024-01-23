@@ -2,6 +2,7 @@ import * as core from '@actions/core';
 import { parseInputs } from './inputs';
 import * as policyService from './services/policy-service';
 import * as pipelineResultsService from './services/pipeline-results-service';
+import * as policyResultsService from './services/policy-results-services'
 
 /**
  * Runs the action.
@@ -15,6 +16,9 @@ export async function run(): Promise<void> {
       break;
     case 'preparePipelineResults':
       await pipelineResultsService.preparePipelineResults(inputs);
+      break;
+    case 'preparePolicyResults':
+      await policyResultsService.preparePolicyResults(inputs);
       break;
     default:
       core.setFailed(

@@ -28973,11 +28973,12 @@ var Actions;
 (function (Actions) {
     Actions["GetPolicyNameByProfileName"] = "getPolicyNameByProfileName";
     Actions["PreparePipelineResults"] = "preparePipelineResults";
+    Actions["PreparePolicyResults"] = "preparePolicyResults";
 })(Actions || (Actions = {}));
 const parseInputs = (getInput) => {
     const action = getInput('action', { required: true });
     if (!Object.values(Actions).includes(action)) {
-        throw new Error(`Invalid action: ${action}. It must be one of '${Object.values(Actions).join("' or '")}'.`);
+        throw new Error(`Invalid action: ${action}. It must be one of '${Object.values(Actions).join('\' or \'')}'.`);
     }
     const vid = getInput('vid', { required: true });
     const vkey = getInput('vkey', { required: true });
@@ -29029,6 +29030,7 @@ const core = __importStar(__nccwpck_require__(749));
 const inputs_1 = __nccwpck_require__(7128);
 const policyService = __importStar(__nccwpck_require__(6834));
 const pipelineResultsService = __importStar(__nccwpck_require__(7328));
+const policyResultsService = __importStar(__nccwpck_require__(7505));
 async function run() {
     const inputs = (0, inputs_1.parseInputs)(core.getInput);
     switch (inputs.action) {
@@ -29037,6 +29039,9 @@ async function run() {
             break;
         case 'preparePipelineResults':
             await pipelineResultsService.preparePipelineResults(inputs);
+            break;
+        case 'preparePolicyResults':
+            await policyResultsService.preparePolicyResults(inputs);
             break;
         default:
             core.setFailed(`Invalid action: ${inputs.action}. Allowed actions are: getPolicyNameByProfileName, preparePipelineResults`);
@@ -29360,6 +29365,58 @@ function getAnnotations(pipelineFindings, javaMaven) {
     });
     return annotations;
 }
+
+
+/***/ }),
+
+/***/ 7505:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.preparePolicyResults = void 0;
+const core = __importStar(__nccwpck_require__(749));
+const fs = __importStar(__nccwpck_require__(3292));
+async function preparePolicyResults(inputs) {
+    console.log(inputs);
+    let data1;
+    let data2;
+    try {
+        data1 = await fs.readFile('policy_flaws.json', 'utf-8');
+        data2 = await fs.readFile('results_url.txt', 'utf-8');
+    }
+    catch (error) {
+        core.debug(`Error reading or parsing filtered_results.json:${error}`);
+        core.setFailed('Error reading or parsing pipeline scan results.');
+    }
+    console.log(data1);
+    console.log(data2);
+}
+exports.preparePolicyResults = preparePolicyResults;
 
 
 /***/ }),

@@ -2,7 +2,8 @@ import { InputOptions } from '@actions/core';
 type GetInput = (name: string, options?: InputOptions | undefined) => string;
 declare enum Actions {
     GetPolicyNameByProfileName = "getPolicyNameByProfileName",
-    PreparePipelineResults = "preparePipelineResults"
+    PreparePipelineResults = "preparePipelineResults",
+    PreparePolicyResults = "preparePolicyResults"
 }
 export type Inputs = {
     action: Actions;
