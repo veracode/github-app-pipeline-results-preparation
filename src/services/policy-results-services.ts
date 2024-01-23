@@ -29,8 +29,8 @@ export async function preparePolicyResults(inputs: Inputs): Promise<void> {
 
   try {
     const data = await fs.readFile('policy_flaws.json', 'utf-8');
-    const parsedData: VeracodePolicyResult.Embedded = JSON.parse(data);
-    findingsArray = parsedData.findings;
+    const parsedData: VeracodePolicyResult.ResultsData = JSON.parse(data);
+    findingsArray = parsedData._embedded.findings;
     resultsUrl = await fs.readFile('results_url.txt', 'utf-8');
   } catch (error) {
     core.debug(`Error reading or parsing filtered_results.json:${error}`);
@@ -49,7 +49,6 @@ export async function preparePolicyResults(inputs: Inputs): Promise<void> {
   console.log(findingsArray);
   core.info(`Policy findings: ${findingsArray.length}`);
   core.info(`Results URL: ${resultsUrl}`);
-
 }
 
 // function getAnnotations (policyFindings: VeracodePolicyResult.Finding[], javaMaven: boolean): Checks.Annotation[] {
@@ -77,6 +76,6 @@ export async function preparePolicyResults(inputs: Inputs): Promise<void> {
 //       message: message,
 //     });
 //   });
-  
+
 //   return annotations;
 // }

@@ -129,9 +129,9 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
     await updateChecks(
       octokit,
       checkStatic,
-      Checks.Conclusion.Failure,
+      Checks.Conclusion.Failure, // Need to review the GitHub App settings to see if we will pass or fail the pipeline
       getAnnotations(filteredFindingsArray, javaMaven),
-      'Here\'s the summary of the scan result.',
+      "Here's the summary of the scan result.",
     );
   }
 }

@@ -28978,7 +28978,7 @@ var Actions;
 const parseInputs = (getInput) => {
     const action = getInput('action', { required: true });
     if (!Object.values(Actions).includes(action)) {
-        throw new Error(`Invalid action: ${action}. It must be one of '${Object.values(Actions).join('\' or \'')}'.`);
+        throw new Error(`Invalid action: ${action}. It must be one of '${Object.values(Actions).join("' or '")}'.`);
     }
     const vid = getInput('vid', { required: true });
     const vkey = getInput('vkey', { required: true });
@@ -29335,7 +29335,7 @@ async function preparePipelineResults(inputs) {
                 javaMaven = true;
         }
         core.info('Pipeline findings after filtering, continue to update the github check status to failure');
-        await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, getAnnotations(filteredFindingsArray, javaMaven), 'Here\'s the summary of the scan result.');
+        await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, getAnnotations(filteredFindingsArray, javaMaven), "Here's the summary of the scan result.");
     }
 }
 exports.preparePipelineResults = preparePipelineResults;
@@ -29424,7 +29424,7 @@ async function preparePolicyResults(inputs) {
     try {
         const data = await fs.readFile('policy_flaws.json', 'utf-8');
         const parsedData = JSON.parse(data);
-        findingsArray = parsedData.findings;
+        findingsArray = parsedData._embedded.findings;
         resultsUrl = await fs.readFile('results_url.txt', 'utf-8');
     }
     catch (error) {
