@@ -46,36 +46,76 @@ export async function preparePolicyResults(inputs: Inputs): Promise<void> {
     return;
   }
 
-  console.log(findingsArray);
   core.info(`Policy findings: ${findingsArray.length}`);
   core.info(`Results URL: ${resultsUrl}`);
+  if (findingsArray.length === 0) {
+    core.info('No findings violates the policy, exiting and update the github check status to success');
+    // update inputs.check_run_id status to success
+    await updateChecks(octokit, checkStatic, Checks.Conclusion.Success, [], 'No policy violated findings');
+    return;
+  } else {
+    core.info('Findings violate the policy, exiting and update the github check status to failure');
+    // use octokit to check the language of the source repository. If it is a java project, then
+    // use octokit to check if the source repository is using java maven or java gradle
+    // if so, filePathPrefix = 'src/main/java/'
+    const repoResponse = await octokit.repos.get(ownership);
+    const language = repoResponse.data.language;
+    core.info(`Source repository language: ${language}`);
+    let javaMaven = false;
+    if (language === 'Java') {
+      let pomFileExists = false;
+      let gradleFileExists = false;
+      try {
+        await octokit.repos.getContent({ ...ownership, path: 'pom.xml' });
+        pomFileExists = true;
+      } catch (error) {
+        core.debug(`Error reading or parsing source repository:${error}`);
+      }
+      try {
+        await octokit.repos.getContent({ ...ownership, path: 'build.gradle' });
+        gradleFileExists = true;
+      } catch (error) {
+        core.debug(`Error reading or parsing source repository:${error}`);
+      }
+      if (pomFileExists || gradleFileExists) javaMaven = true;
+    }
+    // update inputs.check_run_id status to failure
+    await updateChecks(
+      octokit,
+      checkStatic,
+      Checks.Conclusion.Failure,
+      getAnnotations(findingsArray, javaMaven),
+      `Here's the summary of the check result, the full report can be found [here](${resultsUrl}).`
+    );
+    return;
+  }
 }
 
-// function getAnnotations (policyFindings: VeracodePolicyResult.Finding[], javaMaven: boolean): Checks.Annotation[] {
-//   const annotations: Checks.Annotation[] = [];
-//   policyFindings.forEach(function (element) {
-//     if (javaMaven) {
-//       element.finding_details.file_path = `src/main/java/${element.finding_details.file_path}`;
-//       if (element.finding_details.file_path.includes('WEB-INF'))
-//       element.finding_details.file_path = element.finding_details.file_path.replace(
-//           /src\/main\/java\//, // Use regular expression for precise replacement
-//           'src/main/webapp/',
-//         );
-//     }
+function getAnnotations (policyFindings: VeracodePolicyResult.Finding[], javaMaven: boolean): Checks.Annotation[] {
+  const annotations: Checks.Annotation[] = [];
+  policyFindings.forEach(function (element) {
+    if (javaMaven) {
+      element.finding_details.file_path = `src/main/java/${element.finding_details.file_path}`;
+      if (element.finding_details.file_path.includes('WEB-INF'))
+      element.finding_details.file_path = element.finding_details.file_path.replace(
+          /src\/main\/java\//, // Use regular expression for precise replacement
+          'src/main/webapp/',
+        );
+    }
 
-//     const displayMessage = element.description.replace(/<span>/g, '').replace(/<\/span> /g, '\n').replace(/<\/span>/g, '');
-//     let filePath = element.finding_details.file_path;
-//     if (filePath.startsWith('/')) filePath = filePath.substring(1);
-//     const message = `Filename: ${filePath}\nLine: ${element.finding_details.file_line_number}\nCWE: ${element.finding_details.cwe.id} (${element.finding_details.cwe.name})\n\n${displayMessage}`;
-//     annotations.push({
-//       path: `${filePath}`,
-//       start_line: element.finding_details.file_line_number,
-//       end_line: element.finding_details.file_line_number,
-//       annotation_level: 'warning',
-//       title: element.finding_details.cwe.name,
-//       message: message,
-//     });
-//   });
+    const displayMessage = element.description.replace(/<span>/g, '').replace(/<\/span> /g, '\n').replace(/<\/span>/g, '');
+    let filePath = element.finding_details.file_path;
+    if (filePath.startsWith('/')) filePath = filePath.substring(1);
+    const message = `Filename: ${filePath}\nLine: ${element.finding_details.file_line_number}\nCWE: ${element.finding_details.cwe.id} (${element.finding_details.cwe.name})\n\n${displayMessage}`;
+    annotations.push({
+      path: `${filePath}`,
+      start_line: element.finding_details.file_line_number,
+      end_line: element.finding_details.file_line_number,
+      annotation_level: 'warning',
+      title: element.finding_details.cwe.name,
+      message: message,
+    });
+  });
 
-//   return annotations;
-// }
+  return annotations;
+}

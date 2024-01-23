@@ -131,7 +131,7 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
       checkStatic,
       Checks.Conclusion.Failure, // Need to review the GitHub App settings to see if we will pass or fail the pipeline
       getAnnotations(filteredFindingsArray, javaMaven),
-      "Here's the summary of the scan result.",
+      'Here\'s the summary of the scan result.',
     );
   }
 }
