@@ -32,11 +32,10 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
   // check_run_id and source_repository are provided
   if(!vaildateScanResultsActionInput(inputs)) {
     core.setFailed('token, check_run_id and source_repository are required.');
-    // TODO: Based on the veracode.yml, update the checks status to failure or pass
     await updateChecks(
       octokit,
       checkStatic,
-      Checks.Conclusion.Failure,
+      inputs.fail_checks_on_error ? Checks.Conclusion.Failure: Checks.Conclusion.Success,
       [],
       'Token, check_run_id and source_repository are required.',
     );
@@ -52,11 +51,10 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
   } catch (error) {
     core.debug(`Error reading or parsing filtered_results.json:${error}`);
     core.setFailed('Error reading or parsing pipeline scan results.');
-    // TODO: Based on the veracode.yml, update the checks status to failure or pass
     await updateChecks(
       octokit,
       checkStatic,
-      Checks.Conclusion.Failure,
+      inputs.fail_checks_on_error ? Checks.Conclusion.Failure: Checks.Conclusion.Success,
       [],
       'Error reading or parsing pipeline scan results.',
     );
@@ -144,7 +142,7 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
     await updateChecks(
       octokit,
       checkStatic,
-      Checks.Conclusion.Failure, // Need to review the GitHub App settings to see if we will pass or fail the pipeline
+      inputs.fail_checks_on_policy ? Checks.Conclusion.Failure: Checks.Conclusion.Success,
       getAnnotations(filteredFindingsArray, javaMaven),
       'Here\'s the summary of the scan result.',
     );

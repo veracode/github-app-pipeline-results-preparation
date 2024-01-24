@@ -23,7 +23,7 @@ inputs:
   source_repository:
     description: 'Source Repository'
     required: false
-  fail_checkson_on_policy:
+  fail_checks_on_policy:
     description: 'Fail Checks if Policy Fails'
     required: false
   fail_checks_on_error:

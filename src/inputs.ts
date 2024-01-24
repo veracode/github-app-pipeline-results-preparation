@@ -16,7 +16,7 @@ export type Inputs = {
   token: string;
   check_run_id: number;
   source_repository: string;
-  fail_checkson_on_policy: boolean;
+  fail_checks_on_policy: boolean;
   fail_checks_on_error: boolean;
 };
 
@@ -36,7 +36,7 @@ export const parseInputs = (getInput: GetInput): Inputs => {
   const check_run_id = getInput('check_run_id');
   const source_repository = getInput('source_repository');
 
-  const fail_checkson_on_policy = getInput('fail_checkson_on_policy') === 'true';
+  const fail_checks_on_policy = getInput('fail_checks_on_policy') === 'true';
   const fail_checks_on_error = getInput('fail_checks_on_error') === 'true';
 
   if (source_repository && source_repository.split('/').length !== 2) {
@@ -44,7 +44,7 @@ export const parseInputs = (getInput: GetInput): Inputs => {
   }
 
   return { action, token, check_run_id: +check_run_id, vid, vkey, appname, 
-    source_repository, fail_checkson_on_policy, fail_checks_on_error };
+    source_repository, fail_checks_on_policy, fail_checks_on_error };
 };
 
 export const vaildateScanResultsActionInput = (inputs: Inputs): boolean => {

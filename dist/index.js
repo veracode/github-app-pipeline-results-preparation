@@ -28986,13 +28986,13 @@ const parseInputs = (getInput) => {
     const token = getInput('token');
     const check_run_id = getInput('check_run_id');
     const source_repository = getInput('source_repository');
-    const fail_checkson_on_policy = getInput('fail_checkson_on_policy') === 'true';
+    const fail_checks_on_policy = getInput('fail_checks_on_policy') === 'true';
     const fail_checks_on_error = getInput('fail_checks_on_error') === 'true';
     if (source_repository && source_repository.split('/').length !== 2) {
         throw new Error('source_repository needs to be in the {owner}/{repo} format');
     }
     return { action, token, check_run_id: +check_run_id, vid, vkey, appname,
-        source_repository, fail_checkson_on_policy, fail_checks_on_error };
+        source_repository, fail_checks_on_policy, fail_checks_on_error };
 };
 exports.parseInputs = parseInputs;
 const vaildateScanResultsActionInput = (inputs) => {
@@ -29280,7 +29280,7 @@ async function preparePipelineResults(inputs) {
     });
     if (!(0, inputs_1.vaildateScanResultsActionInput)(inputs)) {
         core.setFailed('token, check_run_id and source_repository are required.');
-        await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, [], 'Token, check_run_id and source_repository are required.');
+        await (0, check_service_1.updateChecks)(octokit, checkStatic, inputs.fail_checks_on_error ? Checks.Conclusion.Failure : Checks.Conclusion.Success, [], 'Token, check_run_id and source_repository are required.');
         return;
     }
     let findingsArray = [];
@@ -29292,7 +29292,7 @@ async function preparePipelineResults(inputs) {
     catch (error) {
         core.debug(`Error reading or parsing filtered_results.json:${error}`);
         core.setFailed('Error reading or parsing pipeline scan results.');
-        await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, [], 'Error reading or parsing pipeline scan results.');
+        await (0, check_service_1.updateChecks)(octokit, checkStatic, inputs.fail_checks_on_error ? Checks.Conclusion.Failure : Checks.Conclusion.Success, [], 'Error reading or parsing pipeline scan results.');
         return;
     }
     core.info(`Pipeline findings: ${findingsArray.length}`);
@@ -29352,7 +29352,7 @@ async function preparePipelineResults(inputs) {
                 javaMaven = true;
         }
         core.info('Pipeline findings after filtering, continue to update the github check status to failure');
-        await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, getAnnotations(filteredFindingsArray, javaMaven), 'Here\'s the summary of the scan result.');
+        await (0, check_service_1.updateChecks)(octokit, checkStatic, inputs.fail_checks_on_policy ? Checks.Conclusion.Failure : Checks.Conclusion.Success, getAnnotations(filteredFindingsArray, javaMaven), 'Here\'s the summary of the scan result.');
     }
 }
 exports.preparePipelineResults = preparePipelineResults;
@@ -29439,7 +29439,7 @@ async function preparePolicyResults(inputs) {
     };
     if (!(0, inputs_1.vaildateScanResultsActionInput)(inputs)) {
         core.setFailed('token, check_run_id and source_repository are required.');
-        await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, [], 'Token, check_run_id and source_repository are required.');
+        await (0, check_service_1.updateChecks)(octokit, checkStatic, inputs.fail_checks_on_error ? Checks.Conclusion.Failure : Checks.Conclusion.Success, [], 'Token, check_run_id and source_repository are required.');
         return;
     }
     let findingsArray = [];
@@ -29453,7 +29453,7 @@ async function preparePolicyResults(inputs) {
     catch (error) {
         core.debug(`Error reading or parsing filtered_results.json:${error}`);
         core.setFailed('Error reading or parsing pipeline scan results.');
-        await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, [], 'Error reading or parsing pipeline scan results.');
+        await (0, check_service_1.updateChecks)(octokit, checkStatic, inputs.fail_checks_on_error ? Checks.Conclusion.Failure : Checks.Conclusion.Success, [], 'Error reading or parsing pipeline scan results.');
         return;
     }
     core.info(`Policy findings: ${findingsArray.length}`);
@@ -29489,7 +29489,7 @@ async function preparePolicyResults(inputs) {
             if (pomFileExists || gradleFileExists)
                 javaMaven = true;
         }
-        await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, getAnnotations(findingsArray, javaMaven), `Here's the summary of the check result, the full report can be found [here](${resultsUrl}).`);
+        await (0, check_service_1.updateChecks)(octokit, checkStatic, inputs.fail_checks_on_policy ? Checks.Conclusion.Failure : Checks.Conclusion.Success, getAnnotations(findingsArray, javaMaven), `Here's the summary of the check result, the full report can be found [here](${resultsUrl}).`);
         return;
     }
 }

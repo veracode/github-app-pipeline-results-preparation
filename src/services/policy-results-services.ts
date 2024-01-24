@@ -33,7 +33,7 @@ export async function preparePolicyResults(inputs: Inputs): Promise<void> {
     await updateChecks(
       octokit,
       checkStatic,
-      Checks.Conclusion.Failure,
+      inputs.fail_checks_on_error ? Checks.Conclusion.Failure: Checks.Conclusion.Success,
       [],
       'Token, check_run_id and source_repository are required.',
     );
@@ -55,7 +55,7 @@ export async function preparePolicyResults(inputs: Inputs): Promise<void> {
     await updateChecks(
       octokit,
       checkStatic,
-      Checks.Conclusion.Failure,
+      inputs.fail_checks_on_error ? Checks.Conclusion.Failure: Checks.Conclusion.Success,
       [],
       'Error reading or parsing pipeline scan results.',
     );
@@ -99,7 +99,7 @@ export async function preparePolicyResults(inputs: Inputs): Promise<void> {
     await updateChecks(
       octokit,
       checkStatic,
-      Checks.Conclusion.Failure,
+      inputs.fail_checks_on_policy ? Checks.Conclusion.Failure: Checks.Conclusion.Success,
       getAnnotations(findingsArray, javaMaven),
       `Here's the summary of the check result, the full report can be found [here](${resultsUrl}).`
     );
