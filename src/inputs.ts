@@ -16,7 +16,8 @@ export type Inputs = {
   token: string;
   check_run_id: number;
   source_repository: string;
-  fail_checks: boolean;
+  fail_checkson_on_policy: boolean;
+  fail_checks_on_error: boolean;
 };
 
 export const parseInputs = (getInput: GetInput): Inputs => {
@@ -35,16 +36,19 @@ export const parseInputs = (getInput: GetInput): Inputs => {
   const check_run_id = getInput('check_run_id');
   const source_repository = getInput('source_repository');
 
-  const fail_checks = getInput('fail_checks') === 'true';
+  const fail_checkson_on_policy = getInput('fail_checkson_on_policy') === 'true';
+  const fail_checks_on_error = getInput('fail_checks_on_error') === 'true';
 
   if (source_repository && source_repository.split('/').length !== 2) {
     throw new Error('source_repository needs to be in the {owner}/{repo} format');
   }
 
-  return { action, token, check_run_id: +check_run_id, vid, vkey, appname, source_repository, fail_checks };
+  return { action, token, check_run_id: +check_run_id, vid, vkey, appname, 
+    source_repository, fail_checkson_on_policy, fail_checks_on_error };
 };
 
 export const vaildateScanResultsActionInput = (inputs: Inputs): boolean => {
+  console.log(inputs);
   if (!inputs.token || !inputs.check_run_id || !inputs.source_repository) {
     return false;
   }
