@@ -28968,7 +28968,7 @@ exports["default"] = appConfig;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.parseInputs = void 0;
+exports.vaildateScanResultsActionInput = exports.parseInputs = void 0;
 var Actions;
 (function (Actions) {
     Actions["GetPolicyNameByProfileName"] = "getPolicyNameByProfileName";
@@ -28978,7 +28978,7 @@ var Actions;
 const parseInputs = (getInput) => {
     const action = getInput('action', { required: true });
     if (!Object.values(Actions).includes(action)) {
-        throw new Error(`Invalid action: ${action}. It must be one of '${Object.values(Actions).join("' or '")}'.`);
+        throw new Error(`Invalid action: ${action}. It must be one of '${Object.values(Actions).join('\' or \'')}'.`);
     }
     const vid = getInput('vid', { required: true });
     const vkey = getInput('vkey', { required: true });
@@ -28986,12 +28986,20 @@ const parseInputs = (getInput) => {
     const token = getInput('token');
     const check_run_id = getInput('check_run_id');
     const source_repository = getInput('source_repository');
+    const fail_checks = getInput('fail_checks') === 'true';
     if (source_repository && source_repository.split('/').length !== 2) {
         throw new Error('source_repository needs to be in the {owner}/{repo} format');
     }
-    return { action, token, check_run_id: +check_run_id, vid, vkey, appname, source_repository };
+    return { action, token, check_run_id: +check_run_id, vid, vkey, appname, source_repository, fail_checks };
 };
 exports.parseInputs = parseInputs;
+const vaildateScanResultsActionInput = (inputs) => {
+    if (!inputs.token || !inputs.check_run_id || !inputs.source_repository) {
+        return false;
+    }
+    return true;
+};
+exports.vaildateScanResultsActionInput = vaildateScanResultsActionInput;
 
 
 /***/ }),
@@ -29247,6 +29255,7 @@ const core = __importStar(__nccwpck_require__(749));
 const rest_1 = __nccwpck_require__(1605);
 const fs = __importStar(__nccwpck_require__(3292));
 const Checks = __importStar(__nccwpck_require__(3973));
+const inputs_1 = __nccwpck_require__(7128);
 const check_service_1 = __nccwpck_require__(3686);
 const application_service_1 = __nccwpck_require__(8560);
 const findings_service_1 = __nccwpck_require__(3747);
@@ -29266,6 +29275,11 @@ async function preparePipelineResults(inputs) {
     const octokit = new rest_1.Octokit({
         auth: inputs.token,
     });
+    if (!(0, inputs_1.vaildateScanResultsActionInput)(inputs)) {
+        core.setFailed('token, check_run_id and source_repository are required.');
+        await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, [], 'Token, check_run_id and source_repository are required.');
+        return;
+    }
     let findingsArray = [];
     try {
         const data = await fs.readFile('filtered_results.json', 'utf-8');
@@ -29402,9 +29416,13 @@ exports.preparePolicyResults = void 0;
 const core = __importStar(__nccwpck_require__(749));
 const rest_1 = __nccwpck_require__(1605);
 const fs = __importStar(__nccwpck_require__(3292));
+const inputs_1 = __nccwpck_require__(7128);
 const Checks = __importStar(__nccwpck_require__(3973));
 const check_service_1 = __nccwpck_require__(3686);
 async function preparePolicyResults(inputs) {
+    const octokit = new rest_1.Octokit({
+        auth: inputs.token,
+    });
     const repo = inputs.source_repository.split('/');
     const ownership = {
         owner: repo[0],
@@ -29416,9 +29434,11 @@ async function preparePolicyResults(inputs) {
         check_run_id: inputs.check_run_id,
         status: Checks.Status.Completed,
     };
-    const octokit = new rest_1.Octokit({
-        auth: inputs.token,
-    });
+    if (!(0, inputs_1.vaildateScanResultsActionInput)(inputs)) {
+        core.setFailed('token, check_run_id and source_repository are required.');
+        await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Failure, [], 'Token, check_run_id and source_repository are required.');
+        return;
+    }
     let findingsArray = [];
     let resultsUrl = '';
     try {

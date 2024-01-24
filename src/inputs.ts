@@ -16,6 +16,7 @@ export type Inputs = {
   token: string;
   check_run_id: number;
   source_repository: string;
+  fail_checks: boolean;
 };
 
 export const parseInputs = (getInput: GetInput): Inputs => {
@@ -23,7 +24,7 @@ export const parseInputs = (getInput: GetInput): Inputs => {
 
   // Validate the action value
   if (!Object.values(Actions).includes(action)) {
-    throw new Error(`Invalid action: ${action}. It must be one of '${Object.values(Actions).join("' or '")}'.`);
+    throw new Error(`Invalid action: ${action}. It must be one of '${Object.values(Actions).join('\' or \'')}'.`);
   }
 
   const vid = getInput('vid', { required: true });
@@ -34,9 +35,18 @@ export const parseInputs = (getInput: GetInput): Inputs => {
   const check_run_id = getInput('check_run_id');
   const source_repository = getInput('source_repository');
 
+  const fail_checks = getInput('fail_checks') === 'true';
+
   if (source_repository && source_repository.split('/').length !== 2) {
     throw new Error('source_repository needs to be in the {owner}/{repo} format');
   }
 
-  return { action, token, check_run_id: +check_run_id, vid, vkey, appname, source_repository };
+  return { action, token, check_run_id: +check_run_id, vid, vkey, appname, source_repository, fail_checks };
 };
+
+export const vaildateScanResultsActionInput = (inputs: Inputs): boolean => {
+  if (!inputs.token || !inputs.check_run_id || !inputs.source_repository) {
+    return false;
+  }
+  return true;
+}

@@ -23,6 +23,9 @@ inputs:
   source_repository:
     description: 'Source Repository'
     required: false
+  fail_checks:
+    description: 'Fail Checks'
+    required: false
 runs:
   using: 'node20'
   main: 'dist/index.js'

@@ -1,12 +1,17 @@
 import * as core from '@actions/core';
 import { Octokit } from '@octokit/rest';
 import * as fs from 'fs/promises';
-import { Inputs } from '../inputs';
+import { Inputs, vaildateScanResultsActionInput } from '../inputs';
 import * as VeracodePolicyResult from '../namespaces/VeracodePolicyResult';
 import * as Checks from '../namespaces/Checks';
 import { updateChecks } from './check-service';
 
 export async function preparePolicyResults(inputs: Inputs): Promise<void> {
+
+  const octokit = new Octokit({
+    auth: inputs.token,
+  });
+
   const repo = inputs.source_repository.split('/');
   const ownership = {
     owner: repo[0],
@@ -20,9 +25,20 @@ export async function preparePolicyResults(inputs: Inputs): Promise<void> {
     status: Checks.Status.Completed,
   };
 
-  const octokit = new Octokit({
-    auth: inputs.token,
-  });
+  // When the action is preparePolicyResults, need to make sure token, 
+  // check_run_id and source_repository are provided
+  if(!vaildateScanResultsActionInput(inputs)) {
+    core.setFailed('token, check_run_id and source_repository are required.');
+    // TODO: Based on the veracode.yml, update the checks status to failure or pass
+    await updateChecks(
+      octokit,
+      checkStatic,
+      Checks.Conclusion.Failure,
+      [],
+      'Token, check_run_id and source_repository are required.',
+    );
+    return;
+  }
 
   let findingsArray: VeracodePolicyResult.Finding[] = [];
   let resultsUrl: string = '';

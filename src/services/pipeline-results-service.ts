@@ -3,7 +3,7 @@ import { Octokit } from '@octokit/rest';
 import * as fs from 'fs/promises';
 import * as Checks from '../namespaces/Checks';
 import * as VeracodePipelineResult from '../namespaces/VeracodePipelineResult';
-import { Inputs } from '../inputs';
+import { Inputs, vaildateScanResultsActionInput } from '../inputs';
 import { updateChecks } from './check-service';
 import { getApplicationByName } from './application-service';
 import { getApplicationFindings } from './findings-service';
@@ -27,6 +27,21 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
   const octokit = new Octokit({
     auth: inputs.token,
   });
+
+  // When the action is preparePolicyResults, need to make sure token, 
+  // check_run_id and source_repository are provided
+  if(!vaildateScanResultsActionInput(inputs)) {
+    core.setFailed('token, check_run_id and source_repository are required.');
+    // TODO: Based on the veracode.yml, update the checks status to failure or pass
+    await updateChecks(
+      octokit,
+      checkStatic,
+      Checks.Conclusion.Failure,
+      [],
+      'Token, check_run_id and source_repository are required.',
+    );
+    return;
+  }
 
   let findingsArray: VeracodePipelineResult.Finding[] = [];
 

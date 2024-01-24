@@ -13,6 +13,8 @@ export type Inputs = {
     token: string;
     check_run_id: number;
     source_repository: string;
+    fail_checks: boolean;
 };
 export declare const parseInputs: (getInput: GetInput) => Inputs;
+export declare const vaildateScanResultsActionInput: (inputs: Inputs) => boolean;
 export {};
