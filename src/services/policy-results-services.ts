@@ -96,13 +96,25 @@ export async function preparePolicyResults(inputs: Inputs): Promise<void> {
       if (pomFileExists || gradleFileExists) javaMaven = true;
     }
     // update inputs.check_run_id status to failure
-    await updateChecks(
-      octokit,
-      checkStatic,
-      inputs.fail_checks_on_policy ? Checks.Conclusion.Failure: Checks.Conclusion.Success,
-      getAnnotations(findingsArray, javaMaven),
-      `Here's the summary of the check result, the full report can be found [here](${resultsUrl}).`
-    );
+
+    const annotations = getAnnotations(findingsArray, javaMaven);
+    const maxNumberOfAnnotations = 50;
+
+    for (let index = 0; index < annotations.length / maxNumberOfAnnotations; index++) {
+      const annotationBatch = annotations.slice(
+        index * maxNumberOfAnnotations, 
+        (index + 1) * maxNumberOfAnnotations
+      );
+      if (annotationBatch.length > 0) {
+        await updateChecks(
+          octokit,
+          checkStatic,
+          inputs.fail_checks_on_policy ? Checks.Conclusion.Failure: Checks.Conclusion.Success,
+          annotationBatch,
+          `Here's the summary of the check result, the full report can be found [here](${resultsUrl}).`
+        )
+      }
+    }
     return;
   }
 }

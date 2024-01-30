@@ -29509,7 +29509,14 @@ async function preparePolicyResults(inputs) {
             if (pomFileExists || gradleFileExists)
                 javaMaven = true;
         }
-        await (0, check_service_1.updateChecks)(octokit, checkStatic, inputs.fail_checks_on_policy ? Checks.Conclusion.Failure : Checks.Conclusion.Success, getAnnotations(findingsArray, javaMaven), `Here's the summary of the check result, the full report can be found [here](${resultsUrl}).`);
+        const annotations = getAnnotations(findingsArray, javaMaven);
+        const maxNumberOfAnnotations = 50;
+        for (let index = 0; index < annotations.length / maxNumberOfAnnotations; index++) {
+            const annotationBatch = annotations.slice(index * maxNumberOfAnnotations, (index + 1) * maxNumberOfAnnotations);
+            if (annotationBatch.length > 0) {
+                await (0, check_service_1.updateChecks)(octokit, checkStatic, inputs.fail_checks_on_policy ? Checks.Conclusion.Failure : Checks.Conclusion.Success, annotationBatch, `Here's the summary of the check result, the full report can be found [here](${resultsUrl}).`);
+            }
+        }
         return;
     }
 }
