@@ -29559,10 +29559,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getPolicyNameByProfileName = void 0;
 const core = __importStar(__nccwpck_require__(749));
-const rest_1 = __nccwpck_require__(1605);
 const ApplicationService = __importStar(__nccwpck_require__(8560));
-const Checks = __importStar(__nccwpck_require__(3973));
-const check_service_1 = __nccwpck_require__(3686);
 async function getPolicyNameByProfileName(inputs) {
     const appname = inputs.appname;
     const vid = inputs.vid;
@@ -29573,23 +29570,7 @@ async function getPolicyNameByProfileName(inputs) {
     }
     catch (error) {
         core.setFailed(`No application found with name ${appname}`);
-        if (inputs.source_repository && inputs.token && inputs.check_run_id) {
-            const repo = inputs.source_repository.split('/');
-            const ownership = {
-                owner: repo[0],
-                repo: repo[1],
-            };
-            const octokit = new rest_1.Octokit({
-                auth: inputs.token,
-            });
-            const checkStatic = {
-                owner: ownership.owner,
-                repo: ownership.repo,
-                check_run_id: inputs.check_run_id,
-                status: Checks.Status.Completed,
-            };
-            await (0, check_service_1.updateChecks)(octokit, checkStatic, inputs.fail_checks_on_error ? Checks.Conclusion.Failure : Checks.Conclusion.Success, [], `No application found with name ${appname}`);
-        }
+        core.setOutput('policy_name', '');
     }
 }
 exports.getPolicyNameByProfileName = getPolicyNameByProfileName;
