@@ -29137,7 +29137,6 @@ async function getApplicationByName(appname, vid, vkey) {
         const applicationResponse = await http.getResourceByAttribute(vid, vkey, getApplicationByNameResource);
         const applications = ((_a = applicationResponse._embedded) === null || _a === void 0 ? void 0 : _a.applications) || [];
         if (applications.length === 0) {
-            core.setFailed(`No application found with name ${appname}`);
             throw new Error(`No application found with name ${appname}`);
         }
         else if (applications.length > 1) {
@@ -29560,10 +29559,38 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getPolicyNameByProfileName = void 0;
 const core = __importStar(__nccwpck_require__(749));
+const rest_1 = __nccwpck_require__(1605);
 const ApplicationService = __importStar(__nccwpck_require__(8560));
+const Checks = __importStar(__nccwpck_require__(3973));
+const check_service_1 = __nccwpck_require__(3686);
 async function getPolicyNameByProfileName(inputs) {
-    const application = await ApplicationService.getApplicationByName(inputs.appname, inputs.vid, inputs.vkey);
-    core.setOutput('policy_name', application.profile.policies[0].name);
+    const appname = inputs.appname;
+    const vid = inputs.vid;
+    const vkey = inputs.vkey;
+    try {
+        const application = await ApplicationService.getApplicationByName(appname, vid, vkey);
+        core.setOutput('policy_name', application.profile.policies[0].name);
+    }
+    catch (error) {
+        core.setFailed(`No application found with name ${appname}`);
+        if (inputs.source_repository && inputs.token && inputs.check_run_id) {
+            const repo = inputs.source_repository.split('/');
+            const ownership = {
+                owner: repo[0],
+                repo: repo[1],
+            };
+            const octokit = new rest_1.Octokit({
+                auth: inputs.token,
+            });
+            const checkStatic = {
+                owner: ownership.owner,
+                repo: ownership.repo,
+                check_run_id: inputs.check_run_id,
+                status: Checks.Status.Completed,
+            };
+            await (0, check_service_1.updateChecks)(octokit, checkStatic, inputs.fail_checks_on_error ? Checks.Conclusion.Failure : Checks.Conclusion.Success, [], `No application found with name ${appname}`);
+        }
+    }
 }
 exports.getPolicyNameByProfileName = getPolicyNameByProfileName;
 
