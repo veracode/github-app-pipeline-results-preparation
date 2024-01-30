@@ -29307,9 +29307,16 @@ async function preparePipelineResults(inputs) {
         await (0, check_service_1.updateChecks)(octokit, checkStatic, Checks.Conclusion.Success, [], 'No pipeline findings');
         return;
     }
-    const application = await (0, application_service_1.getApplicationByName)(inputs.appname, inputs.vid, inputs.vkey);
-    const applicationGuid = application.guid;
-    const policyFindings = await (0, findings_service_1.getApplicationFindings)(applicationGuid, inputs.vid, inputs.vkey);
+    let policyFindings = [];
+    try {
+        const application = await (0, application_service_1.getApplicationByName)(inputs.appname, inputs.vid, inputs.vkey);
+        const applicationGuid = application.guid;
+        policyFindings = await (0, findings_service_1.getApplicationFindings)(applicationGuid, inputs.vid, inputs.vkey);
+    }
+    catch (error) {
+        core.info(`No application found with name ${inputs.appname}`);
+        policyFindings = [];
+    }
     core.info(`Policy findings: ${policyFindings.length}`);
     const mitigatedPolicyFindings = policyFindings.filter((finding) => {
         return (finding.violates_policy === true &&
@@ -29569,6 +29576,7 @@ async function getPolicyNameByProfileName(inputs) {
         core.setOutput('policy_name', application.profile.policies[0].name);
     }
     catch (error) {
+        core.info(`No application found with name ${appname}`);
         core.setOutput('policy_name', '');
     }
 }

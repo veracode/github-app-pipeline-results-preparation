@@ -3,6 +3,7 @@ import { Octokit } from '@octokit/rest';
 import * as fs from 'fs/promises';
 import * as Checks from '../namespaces/Checks';
 import * as VeracodePipelineResult from '../namespaces/VeracodePipelineResult';
+import * as VeracodePolicyResult from '../namespaces/VeracodePolicyResult';
 import { Inputs, vaildateScanResultsActionInput } from '../inputs';
 import { updateChecks } from './check-service';
 import { getApplicationByName } from './application-service';
@@ -70,10 +71,17 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
     return;
   }
 
-  const application = await getApplicationByName(inputs.appname, inputs.vid, inputs.vkey);
-  const applicationGuid = application.guid;
+  let policyFindings:VeracodePolicyResult.Finding[] = [];
 
-  const policyFindings = await getApplicationFindings(applicationGuid, inputs.vid, inputs.vkey);
+  try {
+    const application = await getApplicationByName(inputs.appname, inputs.vid, inputs.vkey);
+    const applicationGuid = application.guid;
+    policyFindings = await getApplicationFindings(applicationGuid, inputs.vid, inputs.vkey);
+  } catch (error) {
+    core.info(`No application found with name ${inputs.appname}`);
+    policyFindings = [];
+  }
+  
 
   // What if no policy scan?
   core.info(`Policy findings: ${policyFindings.length}`);
