@@ -29569,7 +29569,6 @@ async function getPolicyNameByProfileName(inputs) {
         core.setOutput('policy_name', application.profile.policies[0].name);
     }
     catch (error) {
-        core.setFailed(`No application found with name ${appname}`);
         core.setOutput('policy_name', '');
     }
 }

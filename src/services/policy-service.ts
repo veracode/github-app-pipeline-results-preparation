@@ -14,7 +14,7 @@ export async function getPolicyNameByProfileName(inputs: InputService.Inputs): P
     const application = await ApplicationService.getApplicationByName(appname, vid, vkey);
     core.setOutput('policy_name', application.profile.policies[0].name);
   } catch (error) {
-    core.setFailed(`No application found with name ${appname}`);
+    // core.setFailed(`No application found with name ${appname}`);
     core.setOutput('policy_name', '');
     // if (inputs.source_repository && inputs.token && inputs.check_run_id) {
     //   const repo = inputs.source_repository.split('/');
