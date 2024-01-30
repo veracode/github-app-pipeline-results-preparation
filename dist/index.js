@@ -28968,13 +28968,13 @@ exports["default"] = appConfig;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.vaildateScanResultsActionInput = exports.parseInputs = void 0;
+exports.vaildateScanResultsActionInput = exports.parseInputs = exports.Actions = void 0;
 var Actions;
 (function (Actions) {
     Actions["GetPolicyNameByProfileName"] = "getPolicyNameByProfileName";
     Actions["PreparePipelineResults"] = "preparePipelineResults";
     Actions["PreparePolicyResults"] = "preparePolicyResults";
-})(Actions || (Actions = {}));
+})(Actions || (exports.Actions = Actions = {}));
 const parseInputs = (getInput) => {
     const action = getInput('action', { required: true });
     if (!Object.values(Actions).includes(action)) {
@@ -29127,21 +29127,28 @@ const core = __importStar(__nccwpck_require__(749));
 const app_config_1 = __importDefault(__nccwpck_require__(2684));
 const http = __importStar(__nccwpck_require__(7740));
 async function getApplicationByName(appname, vid, vkey) {
-    const getApplicationByNameResource = {
-        resourceUri: app_config_1.default.applicationUri,
-        queryAttribute: 'name',
-        queryValue: encodeURIComponent(appname),
-    };
-    const applicationResponse = await http.getResourceByAttribute(vid, vkey, getApplicationByNameResource);
-    const applications = applicationResponse._embedded.applications;
-    if (applications.length === 0) {
-        core.setFailed(`No application found with name ${appname}`);
-        throw new Error(`No application found with name ${appname}`);
+    var _a;
+    try {
+        const getApplicationByNameResource = {
+            resourceUri: app_config_1.default.applicationUri,
+            queryAttribute: 'name',
+            queryValue: encodeURIComponent(appname),
+        };
+        const applicationResponse = await http.getResourceByAttribute(vid, vkey, getApplicationByNameResource);
+        const applications = ((_a = applicationResponse._embedded) === null || _a === void 0 ? void 0 : _a.applications) || [];
+        if (applications.length === 0) {
+            core.setFailed(`No application found with name ${appname}`);
+            throw new Error(`No application found with name ${appname}`);
+        }
+        else if (applications.length > 1) {
+            core.info(`Multiple applications found with name ${appname}, selecting the first found`);
+        }
+        return applications[0];
     }
-    else if (applications.length > 1) {
-        core.info(`Multiple applications found with name ${appname}, selecting the first found`);
+    catch (error) {
+        console.error(error);
+        throw error;
     }
-    return applications[0];
 }
 exports.getApplicationByName = getApplicationByName;
 

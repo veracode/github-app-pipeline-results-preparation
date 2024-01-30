@@ -2,7 +2,7 @@ import { InputOptions } from '@actions/core';
 
 type GetInput = (name: string, options?: InputOptions | undefined) => string;
 
-enum Actions {
+export enum Actions {
   GetPolicyNameByProfileName = 'getPolicyNameByProfileName',
   PreparePipelineResults = 'preparePipelineResults',
   PreparePolicyResults = 'preparePolicyResults',
