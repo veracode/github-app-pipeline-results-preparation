@@ -146,14 +146,26 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
       if (pomFileExists || gradleFileExists) javaMaven = true;
     }
 
-    core.info('Pipeline findings after filtering, continue to update the github check status to failure');
-    await updateChecks(
-      octokit,
-      checkStatic,
-      inputs.fail_checks_on_policy ? Checks.Conclusion.Failure: Checks.Conclusion.Success,
-      getAnnotations(filteredFindingsArray, javaMaven),
-      'Here\'s the summary of the scan result.',
-    );
+    core.info('Pipeline findings after filtering, continue to update the github check status');
+
+    const annotations = getAnnotations(filteredFindingsArray, javaMaven);
+    const maxNumberOfAnnotations = 50;
+
+    for (let index = 0; index < annotations.length / maxNumberOfAnnotations; index++) {
+      const annotationBatch = annotations.slice(
+        index * maxNumberOfAnnotations, 
+        (index + 1) * maxNumberOfAnnotations
+      );
+      if (annotationBatch.length > 0) {
+        await updateChecks(
+          octokit,
+          checkStatic,
+          inputs.fail_checks_on_policy ? Checks.Conclusion.Failure: Checks.Conclusion.Success,
+          annotationBatch,
+          'Here\'s the summary of the scan result.',
+        )
+      }
+    }
   }
 }
 
