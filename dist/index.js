@@ -28841,7 +28841,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getResourceByAttribute = void 0;
+exports.deleteResourceById = exports.getResourceByAttribute = void 0;
 const veracode_hmac_1 = __nccwpck_require__(3841);
 const app_config_1 = __importDefault(__nccwpck_require__(2684));
 async function getResourceByAttribute(vid, vkey, resource) {
@@ -28870,6 +28870,29 @@ async function getResourceByAttribute(vid, vkey, resource) {
     }
 }
 exports.getResourceByAttribute = getResourceByAttribute;
+async function deleteResourceById(vid, vkey, resource) {
+    const resourceUri = resource.resourceUri;
+    const resourceId = resource.resourceId;
+    const queryUrl = `${resourceUri}/${resourceId}`;
+    const headers = {
+        Authorization: (0, veracode_hmac_1.calculateAuthorizationHeader)({
+            id: vid,
+            key: vkey,
+            host: app_config_1.default.hostName,
+            url: queryUrl,
+            method: 'DELETE',
+        }),
+    };
+    const appUrl = `https://${app_config_1.default.hostName}${resourceUri}/${resourceId}`;
+    try {
+        await fetch(appUrl, { method: 'DELETE', headers });
+    }
+    catch (error) {
+        console.log(error);
+        throw new Error('Failed to delete resource.');
+    }
+}
+exports.deleteResourceById = deleteResourceById;
 
 
 /***/ }),
@@ -28956,6 +28979,7 @@ const appConfig = {
     hostName: 'api.veracode.com',
     applicationUri: '/appsec/v1/applications',
     findingsUri: '/appsec/v2/applications',
+    sandboxUri: '/appsec/v1/applications/${appGuid}/sandboxes',
 };
 exports["default"] = appConfig;
 
@@ -28968,12 +28992,13 @@ exports["default"] = appConfig;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.vaildateScanResultsActionInput = exports.parseInputs = exports.Actions = void 0;
+exports.vaildateRemoveSandboxInput = exports.vaildateScanResultsActionInput = exports.parseInputs = exports.Actions = void 0;
 var Actions;
 (function (Actions) {
     Actions["GetPolicyNameByProfileName"] = "getPolicyNameByProfileName";
     Actions["PreparePipelineResults"] = "preparePipelineResults";
     Actions["PreparePolicyResults"] = "preparePolicyResults";
+    Actions["RemoveSandbox"] = "removeSandbox";
 })(Actions || (exports.Actions = Actions = {}));
 const parseInputs = (getInput) => {
     const action = getInput('action', { required: true });
@@ -28988,11 +29013,12 @@ const parseInputs = (getInput) => {
     const source_repository = getInput('source_repository');
     const fail_checks_on_policy = getInput('fail_checks_on_policy') === 'true';
     const fail_checks_on_error = getInput('fail_checks_on_error') === 'true';
+    const sandboxname = getInput('sandboxname');
     if (source_repository && source_repository.split('/').length !== 2) {
         throw new Error('source_repository needs to be in the {owner}/{repo} format');
     }
     return { action, token, check_run_id: +check_run_id, vid, vkey, appname,
-        source_repository, fail_checks_on_policy, fail_checks_on_error };
+        source_repository, fail_checks_on_policy, fail_checks_on_error, sandboxname };
 };
 exports.parseInputs = parseInputs;
 const vaildateScanResultsActionInput = (inputs) => {
@@ -29003,6 +29029,14 @@ const vaildateScanResultsActionInput = (inputs) => {
     return true;
 };
 exports.vaildateScanResultsActionInput = vaildateScanResultsActionInput;
+const vaildateRemoveSandboxInput = (inputs) => {
+    console.log(inputs);
+    if (!inputs.sandboxname) {
+        return false;
+    }
+    return true;
+};
+exports.vaildateRemoveSandboxInput = vaildateRemoveSandboxInput;
 
 
 /***/ }),
@@ -29042,6 +29076,7 @@ const inputs_1 = __nccwpck_require__(7128);
 const policyService = __importStar(__nccwpck_require__(6834));
 const pipelineResultsService = __importStar(__nccwpck_require__(7328));
 const policyResultsService = __importStar(__nccwpck_require__(7505));
+const applicationService = __importStar(__nccwpck_require__(8560));
 async function run() {
     const inputs = (0, inputs_1.parseInputs)(core.getInput);
     switch (inputs.action) {
@@ -29054,8 +29089,11 @@ async function run() {
         case 'preparePolicyResults':
             await policyResultsService.preparePolicyResults(inputs);
             break;
+        case 'removeSandbox':
+            await applicationService.removeSandbox(inputs);
+            break;
         default:
-            core.setFailed(`Invalid action: ${inputs.action}. Allowed actions are: getPolicyNameByProfileName, preparePipelineResults, preparePolicyResults.`);
+            core.setFailed(`Invalid action: ${inputs.action}. Allowed actions are: getPolicyNameByProfileName, preparePipelineResults, preparePolicyResults, removeSandbox.`);
     }
 }
 exports.run = run;
@@ -29122,10 +29160,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getApplicationByName = void 0;
+exports.removeSandbox = exports.getApplicationByName = void 0;
 const core = __importStar(__nccwpck_require__(749));
 const app_config_1 = __importDefault(__nccwpck_require__(2684));
 const http = __importStar(__nccwpck_require__(7740));
+const inputs_1 = __nccwpck_require__(7128);
 async function getApplicationByName(appname, vid, vkey) {
     var _a;
     try {
@@ -29150,6 +29189,64 @@ async function getApplicationByName(appname, vid, vkey) {
     }
 }
 exports.getApplicationByName = getApplicationByName;
+async function removeSandbox(inputs) {
+    if (!(0, inputs_1.vaildateRemoveSandboxInput)(inputs)) {
+        core.setFailed('sandboxname is required.');
+    }
+    const appname = inputs.appname;
+    const vid = inputs.vid;
+    const vkey = inputs.vkey;
+    const sandboxName = inputs.sandboxname;
+    let application;
+    try {
+        application = await getApplicationByName(appname, vid, vkey);
+    }
+    catch (error) {
+        core.setFailed(`No application found with name ${appname}`);
+        throw new Error(`No application found with name ${appname}`);
+    }
+    const appGuid = application.guid;
+    let sandboxes;
+    try {
+        sandboxes = await getSandboxesByApplicationGuid(appGuid, vid, vkey);
+    }
+    catch (error) {
+        throw new Error(`Error retrieving sandboxes for application ${appname}`);
+    }
+    const sandbox = sandboxes.find((s) => s.name === sandboxName);
+    if (sandbox === undefined) {
+        core.setFailed(`No sandbox found with name ${sandboxName}`);
+        return;
+    }
+    try {
+        const removeSandboxResource = {
+            resourceUri: app_config_1.default.sandboxUri.replace('${appGuid}', appGuid),
+            resourceId: sandbox.guid,
+        };
+        await http.deleteResourceById(vid, vkey, removeSandboxResource);
+    }
+    catch (error) {
+        core.debug(`Error removing sandbox:${error}`);
+        core.setFailed(`Error removing sandbox ${sandboxName}`);
+    }
+}
+exports.removeSandbox = removeSandbox;
+async function getSandboxesByApplicationGuid(appGuid, vid, vkey) {
+    var _a;
+    try {
+        const getSandboxesByApplicationGuidResource = {
+            resourceUri: app_config_1.default.sandboxUri.replace('${appGuid}', appGuid),
+            queryAttribute: '',
+            queryValue: '',
+        };
+        const sandboxResponse = await http.getResourceByAttribute(vid, vkey, getSandboxesByApplicationGuidResource);
+        return ((_a = sandboxResponse._embedded) === null || _a === void 0 ? void 0 : _a.sandboxes) || [];
+    }
+    catch (error) {
+        console.error(error);
+        throw error;
+    }
+}
 
 
 /***/ }),
