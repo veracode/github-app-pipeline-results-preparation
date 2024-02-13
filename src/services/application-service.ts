@@ -73,10 +73,9 @@ export async function removeSandbox(inputs: Inputs): Promise<void> {
       resourceId: sandbox.guid,
     };
 
-    const data = await http.deleteResourceById(vid, vkey, removeSandboxResource);
-    console.log(data);
+    await http.deleteResourceById(vid, vkey, removeSandboxResource);
   } catch (error) {
-    console.error(error);
+    console.log(error);
     throw error;
   }
 }

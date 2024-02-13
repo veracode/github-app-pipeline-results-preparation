@@ -38,7 +38,7 @@ export async function getResourceByAttribute<T>(vid: string, vkey: string, resou
   }
 }
 
-export async function deleteResourceById<T>(vid: string, vkey: string, resource: ResourceById): Promise<T> {
+export async function deleteResourceById(vid: string, vkey: string, resource: ResourceById): Promise<void> {
   const resourceUri = resource.resourceUri;
   const resourceId = resource.resourceId;
 
@@ -55,8 +55,7 @@ export async function deleteResourceById<T>(vid: string, vkey: string, resource:
   const appUrl = `https://${appConfig.hostName}${resourceUri}/${resourceId}`;
   try {
     const response = await fetch(appUrl, { method: 'DELETE', headers });
-    const data = await response.json();
-    return data as T;
+    console.log(response);
   } catch (error) {
     console.log(error);
     throw new Error('Failed to delete resource.');

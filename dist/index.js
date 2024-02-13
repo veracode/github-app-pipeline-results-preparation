@@ -28886,8 +28886,7 @@ async function deleteResourceById(vid, vkey, resource) {
     const appUrl = `https://${app_config_1.default.hostName}${resourceUri}/${resourceId}`;
     try {
         const response = await fetch(appUrl, { method: 'DELETE', headers });
-        const data = await response.json();
-        return data;
+        console.log(response);
     }
     catch (error) {
         console.log(error);
@@ -29225,11 +29224,10 @@ async function removeSandbox(inputs) {
             resourceUri: app_config_1.default.sandboxUri.replace('${appGuid}', appGuid),
             resourceId: sandbox.guid,
         };
-        const data = await http.deleteResourceById(vid, vkey, removeSandboxResource);
-        console.log(data);
+        await http.deleteResourceById(vid, vkey, removeSandboxResource);
     }
     catch (error) {
-        console.error(error);
+        console.log(error);
         throw error;
     }
 }
