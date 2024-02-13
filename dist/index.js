@@ -28890,6 +28890,7 @@ async function deleteResourceById(vid, vkey, resource) {
         return data;
     }
     catch (error) {
+        console.log(error);
         throw new Error('Failed to delete resource.');
     }
 }

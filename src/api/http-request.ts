@@ -58,6 +58,7 @@ export async function deleteResourceById<T>(vid: string, vkey: string, resource:
     const data = await response.json();
     return data as T;
   } catch (error) {
+    console.log(error);
     throw new Error('Failed to delete resource.');
   }
 }
