@@ -28885,8 +28885,7 @@ async function deleteResourceById(vid, vkey, resource) {
     };
     const appUrl = `https://${app_config_1.default.hostName}${resourceUri}/${resourceId}`;
     try {
-        const response = await fetch(appUrl, { method: 'DELETE', headers });
-        console.log(response);
+        await fetch(appUrl, { method: 'DELETE', headers });
     }
     catch (error) {
         console.log(error);
@@ -29227,8 +29226,8 @@ async function removeSandbox(inputs) {
         await http.deleteResourceById(vid, vkey, removeSandboxResource);
     }
     catch (error) {
-        console.log(error);
-        throw error;
+        core.debug(`Error removing sandbox:${error}`);
+        core.setFailed(`Error removing sandbox ${sandboxName}`);
     }
 }
 exports.removeSandbox = removeSandbox;

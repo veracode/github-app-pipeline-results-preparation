@@ -54,8 +54,7 @@ export async function deleteResourceById(vid: string, vkey: string, resource: Re
   };
   const appUrl = `https://${appConfig.hostName}${resourceUri}/${resourceId}`;
   try {
-    const response = await fetch(appUrl, { method: 'DELETE', headers });
-    console.log(response);
+    await fetch(appUrl, { method: 'DELETE', headers });
   } catch (error) {
     console.log(error);
     throw new Error('Failed to delete resource.');

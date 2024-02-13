@@ -75,8 +75,8 @@ export async function removeSandbox(inputs: Inputs): Promise<void> {
 
     await http.deleteResourceById(vid, vkey, removeSandboxResource);
   } catch (error) {
-    console.log(error);
-    throw error;
+    core.debug(`Error removing sandbox:${error}`);
+    core.setFailed(`Error removing sandbox ${sandboxName}`);
   }
 }
 
