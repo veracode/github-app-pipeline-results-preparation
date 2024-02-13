@@ -13,5 +13,5 @@ export async function getPolicyNameByProfileName(inputs: InputService.Inputs): P
   } catch (error) {
     core.info(`No application found with name ${appname}`);
     core.setOutput('policy_name', '');
-    }
+  }
 }

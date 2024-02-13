@@ -6,6 +6,7 @@ export enum Actions {
   GetPolicyNameByProfileName = 'getPolicyNameByProfileName',
   PreparePipelineResults = 'preparePipelineResults',
   PreparePolicyResults = 'preparePolicyResults',
+  RemoveSandbox = 'removeSandbox',
 }
 
 export type Inputs = {
@@ -18,6 +19,7 @@ export type Inputs = {
   source_repository: string;
   fail_checks_on_policy: boolean;
   fail_checks_on_error: boolean;
+  sandboxname: string;
 };
 
 export const parseInputs = (getInput: GetInput): Inputs => {
@@ -39,17 +41,27 @@ export const parseInputs = (getInput: GetInput): Inputs => {
   const fail_checks_on_policy = getInput('fail_checks_on_policy') === 'true';
   const fail_checks_on_error = getInput('fail_checks_on_error') === 'true';
 
+  const sandboxname = getInput('sandboxname');
+
   if (source_repository && source_repository.split('/').length !== 2) {
     throw new Error('source_repository needs to be in the {owner}/{repo} format');
   }
 
   return { action, token, check_run_id: +check_run_id, vid, vkey, appname, 
-    source_repository, fail_checks_on_policy, fail_checks_on_error };
+    source_repository, fail_checks_on_policy, fail_checks_on_error, sandboxname };
 };
 
 export const vaildateScanResultsActionInput = (inputs: Inputs): boolean => {
   console.log(inputs);
   if (!inputs.token || !inputs.check_run_id || !inputs.source_repository) {
+    return false;
+  }
+  return true;
+}
+
+export const vaildateRemoveSandboxInput = (inputs: Inputs): boolean => {
+  console.log(inputs);
+  if (!inputs.sandboxname) {
     return false;
   }
   return true;

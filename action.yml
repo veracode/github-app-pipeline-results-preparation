@@ -29,6 +29,9 @@ inputs:
   fail_checks_on_error:
     description: 'Fail Checks if there are Build Errors'
     required: false
+  sandboxname:
+    description: 'Sandbox Name'
+    required: false
 runs:
   using: 'node20'
   main: 'dist/index.js'

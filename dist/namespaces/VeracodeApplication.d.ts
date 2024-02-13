@@ -20,4 +20,17 @@ export interface ResultsData {
         applications: Application[];
     };
 }
+export interface SandboxResultsData {
+    page: {
+        size: number;
+        total_elements: number;
+    };
+    _embedded: {
+        sandboxes: Sandbox[];
+    };
+}
+export interface Sandbox {
+    guid: string;
+    name: string;
+}
 export {};

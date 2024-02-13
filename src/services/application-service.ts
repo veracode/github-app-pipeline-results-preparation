@@ -2,6 +2,7 @@ import * as core from '@actions/core';
 import appConfig from '../app-config';
 import * as VeracodeApplication from '../namespaces/VeracodeApplication';
 import * as http from '../api/http-request';
+import { Inputs, vaildateRemoveSandboxInput } from '../inputs';
 
 export async function getApplicationByName(
   appname: string,
@@ -26,6 +27,73 @@ export async function getApplicationByName(
     }
 
     return applications[0];
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
+
+export async function removeSandbox(inputs: Inputs): Promise<void> {
+  if(!vaildateRemoveSandboxInput(inputs)) {
+    core.setFailed('sandboxname is required.');
+  }
+  const appname = inputs.appname;
+  const vid = inputs.vid;
+  const vkey = inputs.vkey;
+  const sandboxName = inputs.sandboxname;
+
+  let application:VeracodeApplication.Application;
+
+  try {
+    application = await getApplicationByName(appname, vid, vkey);
+  } catch (error) {
+    core.setFailed(`No application found with name ${appname}`);
+    throw new Error(`No application found with name ${appname}`);
+  }
+
+  const appGuid = application.guid;
+
+  let sandboxes: VeracodeApplication.Sandbox[];
+  try {
+    sandboxes = await getSandboxesByApplicationGuid(appGuid, vid, vkey);
+  } catch (error) {
+    throw new Error(`Error retrieving sandboxes for application ${appname}`);
+  }
+
+  const sandbox = sandboxes.find((s) => s.name === sandboxName);
+
+  console.log(sandbox);
+
+  
+  // try {
+  //   const removeSandboxResource = {
+  //     resourceUri: appConfig.sandboxUri,
+  //     resourceId: sandboxId,
+  //   };
+
+  //   await http.deleteResource(vid, vkey, removeSandboxResource);
+  // } catch (error) {
+  //   console.error(error);
+  //   throw error;
+  // }
+}
+
+async function getSandboxesByApplicationGuid(
+  appGuid: string, 
+  vid: string, 
+  vkey: string
+): Promise<VeracodeApplication.Sandbox[]> {
+  try {
+    const getSandboxesByApplicationGuidResource = {
+      resourceUri: appConfig.sandboxUri.replace('${appGuid}', appGuid),
+      queryAttribute: '',
+      queryValue: '',
+    };
+
+    const sandboxResponse: VeracodeApplication.SandboxResultsData =
+      await http.getResourceByAttribute<VeracodeApplication.SandboxResultsData>(vid, vkey, getSandboxesByApplicationGuidResource);
+
+    return sandboxResponse._embedded?.sandboxes || [];
   } catch (error) {
     console.error(error);
     throw error;
