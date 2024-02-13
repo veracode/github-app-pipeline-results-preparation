@@ -28841,7 +28841,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getResourceByAttribute = void 0;
+exports.deleteResourceById = exports.getResourceByAttribute = void 0;
 const veracode_hmac_1 = __nccwpck_require__(3841);
 const app_config_1 = __importDefault(__nccwpck_require__(2684));
 async function getResourceByAttribute(vid, vkey, resource) {
@@ -28870,6 +28870,30 @@ async function getResourceByAttribute(vid, vkey, resource) {
     }
 }
 exports.getResourceByAttribute = getResourceByAttribute;
+async function deleteResourceById(vid, vkey, resource) {
+    const resourceUri = resource.resourceUri;
+    const resourceId = resource.resourceId;
+    const queryUrl = `${resourceUri}/${resourceId}`;
+    const headers = {
+        Authorization: (0, veracode_hmac_1.calculateAuthorizationHeader)({
+            id: vid,
+            key: vkey,
+            host: app_config_1.default.hostName,
+            url: queryUrl,
+            method: 'DELETE',
+        }),
+    };
+    const appUrl = `https://${app_config_1.default.hostName}${resourceUri}/${resourceId}`;
+    try {
+        const response = await fetch(appUrl, { method: 'DELETE', headers });
+        const data = await response.json();
+        return data;
+    }
+    catch (error) {
+        throw new Error('Failed to delete resource.');
+    }
+}
+exports.deleteResourceById = deleteResourceById;
 
 
 /***/ }),
@@ -29191,7 +29215,22 @@ async function removeSandbox(inputs) {
         throw new Error(`Error retrieving sandboxes for application ${appname}`);
     }
     const sandbox = sandboxes.find((s) => s.name === sandboxName);
-    console.log(sandbox);
+    if (sandbox === undefined) {
+        core.setFailed(`No sandbox found with name ${sandboxName}`);
+        return;
+    }
+    try {
+        const removeSandboxResource = {
+            resourceUri: app_config_1.default.sandboxUri.replace('${appGuid}', appGuid),
+            resourceId: sandbox.guid,
+        };
+        const data = await http.deleteResourceById(vid, vkey, removeSandboxResource);
+        console.log(data);
+    }
+    catch (error) {
+        console.error(error);
+        throw error;
+    }
 }
 exports.removeSandbox = removeSandbox;
 async function getSandboxesByApplicationGuid(appGuid, vid, vkey) {

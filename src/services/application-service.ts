@@ -62,20 +62,23 @@ export async function removeSandbox(inputs: Inputs): Promise<void> {
 
   const sandbox = sandboxes.find((s) => s.name === sandboxName);
 
-  console.log(sandbox);
-
+  if (sandbox === undefined) {
+    core.setFailed(`No sandbox found with name ${sandboxName}`);
+    return;
+  }
   
-  // try {
-  //   const removeSandboxResource = {
-  //     resourceUri: appConfig.sandboxUri,
-  //     resourceId: sandboxId,
-  //   };
+  try {
+    const removeSandboxResource = {
+      resourceUri: appConfig.sandboxUri.replace('${appGuid}', appGuid),
+      resourceId: sandbox.guid,
+    };
 
-  //   await http.deleteResource(vid, vkey, removeSandboxResource);
-  // } catch (error) {
-  //   console.error(error);
-  //   throw error;
-  // }
+    const data = await http.deleteResourceById(vid, vkey, removeSandboxResource);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
 }
 
 async function getSandboxesByApplicationGuid(
