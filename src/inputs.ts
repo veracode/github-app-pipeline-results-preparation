@@ -19,6 +19,7 @@ export type Inputs = {
   source_repository: string;
   fail_checks_on_policy: boolean;
   fail_checks_on_error: boolean;
+  filter_mitigated_flaws: boolean;
   sandboxname: string;
 };
 
@@ -27,7 +28,7 @@ export const parseInputs = (getInput: GetInput): Inputs => {
 
   // Validate the action value
   if (!Object.values(Actions).includes(action)) {
-    throw new Error(`Invalid action: ${action}. It must be one of '${Object.values(Actions).join('\' or \'')}'.`);
+    throw new Error(`Invalid action: ${action}. It must be one of '${Object.values(Actions).join("' or '")}'.`);
   }
 
   const vid = getInput('vid', { required: true });
@@ -40,6 +41,7 @@ export const parseInputs = (getInput: GetInput): Inputs => {
 
   const fail_checks_on_policy = getInput('fail_checks_on_policy') === 'true';
   const fail_checks_on_error = getInput('fail_checks_on_error') === 'true';
+  const filter_mitigated_flaws = getInput('filter_mitigated_flaws') === 'true';
 
   const sandboxname = getInput('sandboxname');
 
@@ -47,8 +49,19 @@ export const parseInputs = (getInput: GetInput): Inputs => {
     throw new Error('source_repository needs to be in the {owner}/{repo} format');
   }
 
-  return { action, token, check_run_id: +check_run_id, vid, vkey, appname, 
-    source_repository, fail_checks_on_policy, fail_checks_on_error, sandboxname };
+  return {
+    action,
+    token,
+    check_run_id: +check_run_id,
+    vid,
+    vkey,
+    appname,
+    source_repository,
+    fail_checks_on_policy,
+    fail_checks_on_error,
+    filter_mitigated_flaws,
+    sandboxname,
+  };
 };
 
 export const vaildateScanResultsActionInput = (inputs: Inputs): boolean => {
@@ -57,7 +70,7 @@ export const vaildateScanResultsActionInput = (inputs: Inputs): boolean => {
     return false;
   }
   return true;
-}
+};
 
 export const vaildateRemoveSandboxInput = (inputs: Inputs): boolean => {
   console.log(inputs);
@@ -65,4 +78,4 @@ export const vaildateRemoveSandboxInput = (inputs: Inputs): boolean => {
     return false;
   }
   return true;
-}
+};
