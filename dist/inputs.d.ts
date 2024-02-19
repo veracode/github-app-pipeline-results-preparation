@@ -16,6 +16,7 @@ export type Inputs = {
     source_repository: string;
     fail_checks_on_policy: boolean;
     fail_checks_on_error: boolean;
+    filter_mitigated_flaws: boolean;
     sandboxname: string;
 };
 export declare const parseInputs: (getInput: GetInput) => Inputs;

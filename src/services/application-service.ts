@@ -34,7 +34,7 @@ export async function getApplicationByName(
 }
 
 export async function removeSandbox(inputs: Inputs): Promise<void> {
-  if(!vaildateRemoveSandboxInput(inputs)) {
+  if (!vaildateRemoveSandboxInput(inputs)) {
     core.setFailed('sandboxname is required.');
   }
   const appname = inputs.appname;
@@ -42,7 +42,7 @@ export async function removeSandbox(inputs: Inputs): Promise<void> {
   const vkey = inputs.vkey;
   const sandboxName = inputs.sandboxname;
 
-  let application:VeracodeApplication.Application;
+  let application: VeracodeApplication.Application;
 
   try {
     application = await getApplicationByName(appname, vid, vkey);
@@ -66,7 +66,7 @@ export async function removeSandbox(inputs: Inputs): Promise<void> {
     core.setFailed(`No sandbox found with name ${sandboxName}`);
     return;
   }
-  
+
   try {
     const removeSandboxResource = {
       resourceUri: appConfig.sandboxUri.replace('${appGuid}', appGuid),
@@ -81,9 +81,9 @@ export async function removeSandbox(inputs: Inputs): Promise<void> {
 }
 
 async function getSandboxesByApplicationGuid(
-  appGuid: string, 
-  vid: string, 
-  vkey: string
+  appGuid: string,
+  vid: string,
+  vkey: string,
 ): Promise<VeracodeApplication.Sandbox[]> {
   try {
     const getSandboxesByApplicationGuidResource = {
@@ -93,7 +93,11 @@ async function getSandboxesByApplicationGuid(
     };
 
     const sandboxResponse: VeracodeApplication.SandboxResultsData =
-      await http.getResourceByAttribute<VeracodeApplication.SandboxResultsData>(vid, vkey, getSandboxesByApplicationGuidResource);
+      await http.getResourceByAttribute<VeracodeApplication.SandboxResultsData>(
+        vid,
+        vkey,
+        getSandboxesByApplicationGuidResource,
+      );
 
     return sandboxResponse._embedded?.sandboxes || [];
   } catch (error) {

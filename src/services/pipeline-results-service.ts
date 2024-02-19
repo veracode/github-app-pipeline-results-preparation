@@ -29,14 +29,14 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
     auth: inputs.token,
   });
 
-  // When the action is preparePolicyResults, need to make sure token, 
+  // When the action is preparePolicyResults, need to make sure token,
   // check_run_id and source_repository are provided
-  if(!vaildateScanResultsActionInput(inputs)) {
+  if (!vaildateScanResultsActionInput(inputs)) {
     core.setFailed('token, check_run_id and source_repository are required.');
     await updateChecks(
       octokit,
       checkStatic,
-      inputs.fail_checks_on_error ? Checks.Conclusion.Failure: Checks.Conclusion.Success,
+      inputs.fail_checks_on_error ? Checks.Conclusion.Failure : Checks.Conclusion.Success,
       [],
       'Token, check_run_id and source_repository are required.',
     );
@@ -55,7 +55,7 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
     await updateChecks(
       octokit,
       checkStatic,
-      inputs.fail_checks_on_error ? Checks.Conclusion.Failure: Checks.Conclusion.Success,
+      inputs.fail_checks_on_error ? Checks.Conclusion.Failure : Checks.Conclusion.Success,
       [],
       'Error reading or parsing pipeline scan results.',
     );
@@ -71,7 +71,7 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
     return;
   }
 
-  let policyFindings:VeracodePolicyResult.Finding[] = [];
+  let policyFindings: VeracodePolicyResult.Finding[] = [];
 
   try {
     const application = await getApplicationByName(inputs.appname, inputs.vid, inputs.vkey);
@@ -81,29 +81,36 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
     core.info(`No application found with name ${inputs.appname}`);
     policyFindings = [];
   }
-  
 
   // What if no policy scan?
   core.info(`Policy findings: ${policyFindings.length}`);
 
-  // filter out policy findings based on violates_policy = true and finding_status.status = "CLOSED" and
-  // resolution = "POTENTIAL_FALSE_POSITIVE" or "MITIGATED" and resolution_status = "APPROVED"
-  const mitigatedPolicyFindings = policyFindings.filter((finding) => {
-    return (
-      finding.violates_policy === true &&
-      finding.finding_status.status === 'CLOSED' &&
-      (finding.finding_status.resolution === 'POTENTIAL_FALSE_POSITIVE' ||
-        finding.finding_status.resolution === 'MITIGATED') &&
-      finding.finding_status.resolution_status === 'APPROVED'
-    );
-  });
+  const filter_mitigated_flaws = inputs.filter_mitigated_flaws;
+  let policyFindingsToExlcude: VeracodePolicyResult.Finding[] = [];
 
-  core.info(`Mitigated policy findings: ${mitigatedPolicyFindings.length}`);
+  if (filter_mitigated_flaws) {
+    // filter out policy findings based on violates_policy = true and finding_status.status = "CLOSED" and
+    // resolution = "POTENTIAL_FALSE_POSITIVE" or "MITIGATED" and resolution_status = "APPROVED"
+    policyFindingsToExlcude = policyFindings.filter((finding) => {
+      return (
+        finding.violates_policy === true &&
+        finding.finding_status.status === 'CLOSED' &&
+        (finding.finding_status.resolution === 'POTENTIAL_FALSE_POSITIVE' ||
+          finding.finding_status.resolution === 'MITIGATED') &&
+        finding.finding_status.resolution_status === 'APPROVED'
+      );
+    });
+  } else
+    policyFindingsToExlcude = policyFindings.filter((finding) => {
+      return finding.violates_policy === true;
+    });
 
-  // Remove item in findingsArray if there are item in mitigatedPolicyFindings if the file_path and
+  core.info(`Mitigated policy findings: ${policyFindingsToExlcude.length}`);
+
+  // Remove item in findingsArray if there are item in policyFindingsToExlcude if the file_path and
   // cwe_id and line_number are the same
   const filteredFindingsArray = findingsArray.filter((finding) => {
-    return !mitigatedPolicyFindings.some((mitigatedFinding) => {
+    return !policyFindingsToExlcude.some((mitigatedFinding) => {
       return (
         finding.files.source_file.file === mitigatedFinding.finding_details.file_path &&
         +finding.cwe_id === mitigatedFinding.finding_details.cwe.id &&
@@ -152,18 +159,15 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
     const maxNumberOfAnnotations = 50;
 
     for (let index = 0; index < annotations.length / maxNumberOfAnnotations; index++) {
-      const annotationBatch = annotations.slice(
-        index * maxNumberOfAnnotations, 
-        (index + 1) * maxNumberOfAnnotations
-      );
+      const annotationBatch = annotations.slice(index * maxNumberOfAnnotations, (index + 1) * maxNumberOfAnnotations);
       if (annotationBatch.length > 0) {
         await updateChecks(
           octokit,
           checkStatic,
-          inputs.fail_checks_on_policy ? Checks.Conclusion.Failure: Checks.Conclusion.Success,
+          inputs.fail_checks_on_policy ? Checks.Conclusion.Failure : Checks.Conclusion.Success,
           annotationBatch,
-          'Here\'s the summary of the scan result.',
-        )
+          "Here's the summary of the scan result.",
+        );
       }
     }
   }

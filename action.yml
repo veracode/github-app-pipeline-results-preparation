@@ -29,6 +29,10 @@ inputs:
   fail_checks_on_error:
     description: 'Fail Checks if there are Build Errors'
     required: false
+  filter_mitigated_flaws:
+    description: 'Filter pipeline scan results based on mitigated flaws (true) or all policy flaws (false)'
+    required: false
+    default: false
   sandboxname:
     description: 'Sandbox Name'
     required: false
