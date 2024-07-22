@@ -12,169 +12,95 @@ import { getApplicationFindings } from './findings-service';
 
 const LINE_NUMBER_SLOP = 3; //adjust to allow for line number movement
 
+function getOctokit(inputs: Inputs): Octokit {
+  return new Octokit({
+    auth: inputs.token,
+  });
+}
+
+function getCheckStatic(inputs: Inputs): Checks.ChecksStatic {
+  return {
+    owner: inputs.source_repository.split('/')[0],
+    repo: inputs.source_repository.split('/')[1],
+    check_run_id: inputs.check_run_id,
+    status: Checks.Status.Completed,
+  };
+}
+
+function getOwnership(inputs: Inputs): { owner: string; repo: string } {
+  return {
+    owner: inputs.source_repository.split('/')[0],
+    repo: inputs.source_repository.split('/')[1],
+  };
+}
+
 export async function preparePipelineResults(inputs: Inputs): Promise<void> {
   const workflow_app = inputs.workflow_app;
-  if (!workflow_app) {
-    let findingsArray: VeracodePipelineResult.Finding[] = [];
-    let veracodePipelineResult;
 
-    try {
-      const data = await fs.readFile('filtered_results.json', 'utf-8');
-      const parsedData: VeracodePipelineResult.ResultsData = JSON.parse(data);
-      findingsArray = parsedData.findings;
-      veracodePipelineResult = JSON.parse(data);
-    } catch (error) {
-      core.debug(`Error reading or parsing filtered_results.json:${error}`);
-      core.setFailed('Error reading or parsing pipeline scan results.');
-      return;
-    }
-
-    core.info(`Pipeline findings: ${findingsArray.length}`);
-
-    const filePath = 'filtered_results.json';
-    const artifactName = 'Veracode Pipeline-Scan Results - Mitigated findings';
-    const rootDirectory = process.cwd();
-    const artifactClient = new DefaultArtifactClient();
-
-    if (findingsArray.length === 0) {
-      try {
-        veracodePipelineResult.findings = [];
-        await fs.writeFile(filePath, JSON.stringify(veracodePipelineResult, null, 2));
-        await artifactClient.uploadArtifact(artifactName, [filePath], rootDirectory);
-        core.info(`${artifactName} directory uploaded successfully under the artifact.`);
-      } catch (error) {
-        core.info(`Error while updating the ${artifactName} artifact ${error}`);
-      }
-      core.info('No pipeline findings, exiting and update the github check status to success');
-      return;
-    }
-
-    let policyFindings: VeracodePolicyResult.Finding[] = [];
-
-    try {
-      const application = await getApplicationByName(inputs.appname, inputs.vid, inputs.vkey);
-      const applicationGuid = application.guid;
-      policyFindings = await getApplicationFindings(applicationGuid, inputs.vid, inputs.vkey);
-    } catch (error) {
-      core.info(`No application found with name ${inputs.appname}`);
-      policyFindings = [];
-    }
-  
-    // What if no policy scan?
-    core.info(`Policy findings: ${policyFindings.length}`);
-  
-    const filter_mitigated_flaws = inputs.filter_mitigated_flaws;
-
-    core.info(`Filter mitigated flaws: ${filter_mitigated_flaws}`);
-    let policyFindingsToExlcude: VeracodePolicyResult.Finding[] = [];
-
-    if (filter_mitigated_flaws) {
-      // filter out policy findings based on violates_policy = true and finding_status.status = "CLOSED" and
-      // resolution = "POTENTIAL_FALSE_POSITIVE" or "MITIGATED" and resolution_status = "APPROVED"
-      policyFindingsToExlcude = policyFindings.filter((finding) => {
-        return (
-          finding.violates_policy === true &&
-          finding.finding_status.status === 'CLOSED' &&
-          (finding.finding_status.resolution === 'POTENTIAL_FALSE_POSITIVE' ||
-            finding.finding_status.resolution === 'MITIGATED') &&
-          finding.finding_status.resolution_status === 'APPROVED'
-        );
-      });
-    } else
-      policyFindingsToExlcude = policyFindings.filter((finding) => {
-        return finding.violates_policy === true;
-      });
-  
-    core.info(`Mitigated policy findings: ${policyFindingsToExlcude.length}`);
-
-    const filteredFindingsArray = findingsArray.filter((finding) => {
-      return !policyFindingsToExlcude.some((mitigatedFinding) => {
-        if (mitigatedFinding.finding_details.file_path.charAt(0) === '/') {
-          mitigatedFinding.finding_details.file_path = mitigatedFinding.finding_details.file_path.substring(1);
-        }
-        return (
-          finding.files.source_file.file === mitigatedFinding.finding_details.file_path &&
-          +finding.cwe_id === mitigatedFinding.finding_details.cwe.id &&
-          Math.abs(finding.files.source_file.line - mitigatedFinding.finding_details.file_line_number) <= LINE_NUMBER_SLOP
-        );
-      });
-    });
-  
-    core.info(`Filtered pipeline findings: ${filteredFindingsArray.length}`);
-    
-    try {
-      veracodePipelineResult.findings = veracodePipelineResult.findings.filter((finding: VeracodePipelineResult.Finding) => 
-        filteredFindingsArray.some(filteredFinding => filteredFinding.issue_id === finding.issue_id)
+  if (workflow_app) {
+    // When the action is preparePolicyResults, need to make sure token,
+    // check_run_id and source_repository are provided
+    if (!vaildateScanResultsActionInput(inputs)) {
+      core.setFailed('token, check_run_id and source_repository are required.');
+      await updateChecks(
+        getOctokit(inputs),
+        getCheckStatic(inputs),
+        inputs.fail_checks_on_error ? Checks.Conclusion.Failure : Checks.Conclusion.Success,
+        [],
+        'Token, check_run_id and source_repository are required.',
       );
+      return;
+    }
+  }
+
+  let findingsArray: VeracodePipelineResult.Finding[] = [];
+  let veracodePipelineResult;
+
+  try {
+    const data = await fs.readFile('filtered_results.json', 'utf-8');
+    const parsedData: VeracodePipelineResult.ResultsData = JSON.parse(data);
+    findingsArray = parsedData.findings;
+    veracodePipelineResult = JSON.parse(data);
+  } catch (error) {
+    core.debug(`Error reading or parsing filtered_results.json:${error}`);
+    core.setFailed('Error reading or parsing pipeline scan results.');
+    if (workflow_app)
+      await updateChecks(
+        getOctokit(inputs),
+        getCheckStatic(inputs),
+        inputs.fail_checks_on_error ? Checks.Conclusion.Failure : Checks.Conclusion.Success,
+        [],
+        'Error reading or parsing pipeline scan results.',
+      );
+    return;
+  }
+
+  core.info(`Pipeline findings: ${findingsArray.length}`);
+
+  const filePath = 'filtered_results.json';
+  const artifactName = 'Veracode Pipeline-Scan Results - Mitigated findings';
+  const rootDirectory = process.cwd();
+  const artifactClient = new DefaultArtifactClient();
+
+  if (findingsArray.length === 0) {
+    try {
+      veracodePipelineResult.findings = [];
       await fs.writeFile(filePath, JSON.stringify(veracodePipelineResult, null, 2));
       await artifactClient.uploadArtifact(artifactName, [filePath], rootDirectory);
       core.info(`${artifactName} directory uploaded successfully under the artifact.`);
     } catch (error) {
       core.info(`Error while updating the ${artifactName} artifact ${error}`);
     }
-
-    if (filteredFindingsArray.length > 0 && inputs.fail_checks_on_policy) {
-      core.setFailed('There are findings violates the security policy.');
-    }
-
-    return;
-  }
-  const repo = inputs.source_repository.split('/');
-  const ownership = {
-    owner: repo[0],
-    repo: repo[1],
-  };
-
-  const checkStatic: Checks.ChecksStatic = {
-    owner: ownership.owner,
-    repo: ownership.repo,
-    check_run_id: inputs.check_run_id,
-    status: Checks.Status.Completed,
-  };
-
-  const octokit = new Octokit({
-    auth: inputs.token,
-  });
-
-  // When the action is preparePolicyResults, need to make sure token,
-  // check_run_id and source_repository are provided
-  if (!vaildateScanResultsActionInput(inputs)) {
-    core.setFailed('token, check_run_id and source_repository are required.');
-    await updateChecks(
-      octokit,
-      checkStatic,
-      inputs.fail_checks_on_error ? Checks.Conclusion.Failure : Checks.Conclusion.Success,
-      [],
-      'Token, check_run_id and source_repository are required.',
-    );
-    return;
-  }
-
-  let findingsArray: VeracodePipelineResult.Finding[] = [];
-
-  try {
-    const data = await fs.readFile('filtered_results.json', 'utf-8');
-    const parsedData: VeracodePipelineResult.ResultsData = JSON.parse(data);
-    findingsArray = parsedData.findings;
-  } catch (error) {
-    core.debug(`Error reading or parsing filtered_results.json:${error}`);
-    core.setFailed('Error reading or parsing pipeline scan results.');
-    await updateChecks(
-      octokit,
-      checkStatic,
-      inputs.fail_checks_on_error ? Checks.Conclusion.Failure : Checks.Conclusion.Success,
-      [],
-      'Error reading or parsing pipeline scan results.',
-    );
-    return;
-  }
-
-  core.info(`Pipeline findings: ${findingsArray.length}`);
-
-  if (findingsArray.length === 0) {
     core.info('No pipeline findings, exiting and update the github check status to success');
     // update inputs.check_run_id status to success
-    await updateChecks(octokit, checkStatic, Checks.Conclusion.Success, [], 'No pipeline findings');
+    if (workflow_app)
+      await updateChecks(
+        getOctokit(inputs), 
+        getCheckStatic(inputs), 
+        Checks.Conclusion.Success, 
+        [], 
+        'No pipeline findings'
+      );
     return;
   }
 
@@ -218,6 +144,9 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
   // cwe_id and line_number are the same
   const filteredFindingsArray = findingsArray.filter((finding) => {
     return !policyFindingsToExlcude.some((mitigatedFinding) => {
+      if (mitigatedFinding.finding_details.file_path.charAt(0) === '/') {
+        mitigatedFinding.finding_details.file_path = mitigatedFinding.finding_details.file_path.substring(1);
+      }
       return (
         finding.files.source_file.file === mitigatedFinding.finding_details.file_path &&
         +finding.cwe_id === mitigatedFinding.finding_details.cwe.id &&
@@ -226,18 +155,42 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
     });
   });
 
+  try {
+    veracodePipelineResult.findings = veracodePipelineResult.findings.filter((finding: VeracodePipelineResult.Finding) => 
+      filteredFindingsArray.some(filteredFinding => filteredFinding.issue_id === finding.issue_id)
+    );
+    await fs.writeFile(filePath, JSON.stringify(veracodePipelineResult, null, 2));
+    await artifactClient.uploadArtifact(artifactName, [filePath], rootDirectory);
+    core.info(`${artifactName} directory uploaded successfully under the artifact.`);
+  } catch (error) {
+    core.info(`Error while updating the ${artifactName} artifact ${error}`);
+  }
+
+  if (!workflow_app) {
+    if (filteredFindingsArray.length > 0 && inputs.fail_checks_on_policy) {
+      core.setFailed('There are findings violates the security policy.');
+    }
+    return;
+  }
+
   core.info(`Filtered pipeline findings: ${filteredFindingsArray.length}`);
 
   if (filteredFindingsArray.length === 0) {
     core.info('No pipeline findings after filtering, exiting and update the github check status to success');
     // update inputs.check_run_id status to success
-    await updateChecks(octokit, checkStatic, Checks.Conclusion.Success, [], 'No pipeline findings');
+    await updateChecks(
+      getOctokit(inputs), 
+      getCheckStatic(inputs), 
+      Checks.Conclusion.Success, 
+      [], 
+      'No pipeline findings'
+    );
     return;
   } else {
     // use octokit to check the language of the source repository. If it is a java project, then
     // use octokit to check if the source repository is using java maven or java gradle
     // if so, filePathPrefix = 'src/main/java/'
-    const repoResponse = await octokit.repos.get(ownership);
+    const repoResponse = await getOctokit(inputs).repos.get(getOwnership(inputs));
     const language = repoResponse.data.language;
     core.info(`Source repository language: ${language}`);
 
@@ -246,13 +199,13 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
       let pomFileExists = false;
       let gradleFileExists = false;
       try {
-        await octokit.repos.getContent({ ...ownership, path: 'pom.xml' });
+        await getOctokit(inputs).repos.getContent({ ...getOwnership(inputs), path: 'pom.xml' });
         pomFileExists = true;
       } catch (error) {
         core.debug(`Error reading or parsing source repository:${error}`);
       }
       try {
-        await octokit.repos.getContent({ ...ownership, path: 'build.gradle' });
+        await getOctokit(inputs).repos.getContent({ ...getOwnership(inputs), path: 'build.gradle' });
         gradleFileExists = true;
       } catch (error) {
         core.debug(`Error reading or parsing source repository:${error}`);
@@ -269,11 +222,11 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
       const annotationBatch = annotations.slice(index * maxNumberOfAnnotations, (index + 1) * maxNumberOfAnnotations);
       if (annotationBatch.length > 0) {
         await updateChecks(
-          octokit,
-          checkStatic,
+          getOctokit(inputs), 
+          getCheckStatic(inputs), 
           inputs.fail_checks_on_policy ? Checks.Conclusion.Failure : Checks.Conclusion.Success,
           annotationBatch,
-          'Here\'s the summary of the scan result.',
+          "Here's the summary of the scan result.",
         );
       }
     }
