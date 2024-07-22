@@ -101,7 +101,7 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
     });
   
     core.info(`Filtered pipeline findings: ${filteredFindingsArray.length}`);
-
+    
     try {
       veracodePipelineResult.findings = veracodePipelineResult.findings.filter((finding: VeracodePipelineResult.Finding) => 
         filteredFindingsArray.some(filteredFinding => filteredFinding.issue_id === finding.issue_id)
@@ -111,6 +111,10 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
       core.info(`${artifactName} directory uploaded successfully under the artifact.`);
     } catch (error) {
       core.info(`Error while updating the ${artifactName} artifact ${error}`);
+    }
+
+    if (filteredFindingsArray.length > 0 && inputs.fail_checks_on_policy) {
+      core.setFailed('There are findings violates the security policy.');
     }
 
     return;
