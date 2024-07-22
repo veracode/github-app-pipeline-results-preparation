@@ -1,5 +1,6 @@
 import * as core from '@actions/core';
 import { Octokit } from '@octokit/rest';
+import { DefaultArtifactClient } from '@actions/artifact';
 import * as fs from 'fs/promises';
 import * as Checks from '../namespaces/Checks';
 import * as VeracodePipelineResult from '../namespaces/VeracodePipelineResult';
@@ -15,12 +16,13 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
   const workflow_app = inputs.workflow_app;
   if (!workflow_app) {
     let findingsArray: VeracodePipelineResult.Finding[] = [];
-    let rawData: string;
+    let veracodePipelineResult;
 
     try {
-      rawData = await fs.readFile('filtered_results.json', 'utf-8');
-      const parsedData: VeracodePipelineResult.ResultsData = JSON.parse(rawData);
+      const data = await fs.readFile('filtered_results.json', 'utf-8');
+      const parsedData: VeracodePipelineResult.ResultsData = JSON.parse(data);
       findingsArray = parsedData.findings;
+      veracodePipelineResult = JSON.parse(data);
     } catch (error) {
       core.debug(`Error reading or parsing filtered_results.json:${error}`);
       core.setFailed('Error reading or parsing pipeline scan results.');
@@ -29,7 +31,20 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
 
     core.info(`Pipeline findings: ${findingsArray.length}`);
 
+    const filePath = 'filtered_results.json';
+    const artifactName = 'Veracode Pipeline-Scan Results - Mitigated findings';
+    const rootDirectory = process.cwd();
+    const artifactClient = new DefaultArtifactClient();
+
     if (findingsArray.length === 0) {
+      try {
+        veracodePipelineResult.findings = [];
+        await fs.writeFile(filePath, JSON.stringify(veracodePipelineResult, null, 2));
+        await artifactClient.uploadArtifact(artifactName, [filePath], rootDirectory);
+        core.info(`${artifactName} directory uploaded successfully under the artifact.`);
+      } catch (error) {
+        core.info(`Error while updating the ${artifactName} artifact ${error}`);
+      }
       core.info('No pipeline findings, exiting and update the github check status to success');
       return;
     }
@@ -74,6 +89,9 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
 
     const filteredFindingsArray = findingsArray.filter((finding) => {
       return !policyFindingsToExlcude.some((mitigatedFinding) => {
+        if (mitigatedFinding.finding_details.file_path.charAt(0) === '/') {
+          mitigatedFinding.finding_details.file_path = mitigatedFinding.finding_details.file_path.substring(1);
+        }
         return (
           finding.files.source_file.file === mitigatedFinding.finding_details.file_path &&
           +finding.cwe_id === mitigatedFinding.finding_details.cwe.id &&
@@ -84,13 +102,16 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
   
     core.info(`Filtered pipeline findings: ${filteredFindingsArray.length}`);
 
-    const jsonData = JSON.parse(rawData);
-    jsonData.findings = jsonData.findings.filter((finding: VeracodePipelineResult.Finding) => 
-      filteredFindingsArray.some(filteredFinding => filteredFinding.issue_id === finding.issue_id)
-    );
-
-    core.info(`Filtered pipeline findings: ${JSON.stringify(jsonData, null, 2)}`);
-    await fs.writeFile('filtered_mitigated_results.json', JSON.stringify(jsonData, null, 2), 'utf-8');
+    try {
+      veracodePipelineResult.findings = veracodePipelineResult.findings.filter((finding: VeracodePipelineResult.Finding) => 
+        filteredFindingsArray.some(filteredFinding => filteredFinding.issue_id === finding.issue_id)
+      );
+      await fs.writeFile(filePath, JSON.stringify(veracodePipelineResult, null, 2));
+      await artifactClient.uploadArtifact(artifactName, [filePath], rootDirectory);
+      core.info(`${artifactName} directory uploaded successfully under the artifact.`);
+    } catch (error) {
+      core.info(`Error while updating the ${artifactName} artifact ${error}`);
+    }
 
     return;
   }
