@@ -29384,9 +29384,10 @@ async function preparePipelineResults(inputs) {
     const workflow_app = inputs.workflow_app;
     if (!workflow_app) {
         let findingsArray = [];
+        let rawData;
         try {
-            const data = await fs.readFile('filtered_results.json', 'utf-8');
-            const parsedData = JSON.parse(data);
+            rawData = await fs.readFile('filtered_results.json', 'utf-8');
+            const parsedData = JSON.parse(rawData);
             findingsArray = parsedData.findings;
         }
         catch (error) {
@@ -29435,15 +29436,10 @@ async function preparePipelineResults(inputs) {
             });
         });
         core.info(`Filtered pipeline findings: ${filteredFindingsArray.length}`);
-        if (filteredFindingsArray.length === 0) {
-            core.info('No pipeline findings after filtering, exiting and update the github check status to success');
-            return;
-        }
-        else {
-            core.info('Pipeline findings after filtering, continue to update the github check status');
-            core.info(JSON.stringify(filteredFindingsArray));
-            await fs.writeFile('filtered_mitigated_results.json', JSON.stringify({ findings: filteredFindingsArray }));
-        }
+        const jsonData = JSON.parse(rawData);
+        jsonData.findings = jsonData.findings.filter((finding) => filteredFindingsArray.some(filteredFinding => filteredFinding.issue_id === finding.issue_id));
+        core.info(`Filtered pipeline findings: ${JSON.stringify(jsonData, null, 2)}`);
+        await fs.writeFile('filtered_mitigated_results.json', JSON.stringify(jsonData, null, 2), 'utf-8');
         return;
     }
     const repo = inputs.source_repository.split('/');

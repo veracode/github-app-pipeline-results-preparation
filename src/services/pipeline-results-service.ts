@@ -15,10 +15,11 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
   const workflow_app = inputs.workflow_app;
   if (!workflow_app) {
     let findingsArray: VeracodePipelineResult.Finding[] = [];
+    let rawData: string;
 
     try {
-      const data = await fs.readFile('filtered_results.json', 'utf-8');
-      const parsedData: VeracodePipelineResult.ResultsData = JSON.parse(data);
+      rawData = await fs.readFile('filtered_results.json', 'utf-8');
+      const parsedData: VeracodePipelineResult.ResultsData = JSON.parse(rawData);
       findingsArray = parsedData.findings;
     } catch (error) {
       core.debug(`Error reading or parsing filtered_results.json:${error}`);
@@ -83,15 +84,13 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
   
     core.info(`Filtered pipeline findings: ${filteredFindingsArray.length}`);
 
-    if (filteredFindingsArray.length === 0) {
-      core.info('No pipeline findings after filtering, exiting and update the github check status to success');
-      return;
-    } else {
-      core.info('Pipeline findings after filtering, continue to update the github check status');
-      // write filtered results to a file
-      core.info(JSON.stringify(filteredFindingsArray))
-      await fs.writeFile('filtered_mitigated_results.json', JSON.stringify({ findings: filteredFindingsArray }));
-    }
+    const jsonData = JSON.parse(rawData);
+    jsonData.findings = jsonData.findings.filter((finding: VeracodePipelineResult.Finding) => 
+      filteredFindingsArray.some(filteredFinding => filteredFinding.issue_id === finding.issue_id)
+    );
+
+    core.info(`Filtered pipeline findings: ${JSON.stringify(jsonData, null, 2)}`);
+    await fs.writeFile('filtered_mitigated_results.json', JSON.stringify(jsonData, null, 2), 'utf-8');
 
     return;
   }
