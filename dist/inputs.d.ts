@@ -18,6 +18,7 @@ export type Inputs = {
     fail_checks_on_error: boolean;
     filter_mitigated_flaws: boolean;
     sandboxname: string;
+    workflow_app: boolean;
 };
 export declare const parseInputs: (getInput: GetInput) => Inputs;
 export declare const vaildateScanResultsActionInput: (inputs: Inputs) => boolean;

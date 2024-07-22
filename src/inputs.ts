@@ -21,6 +21,7 @@ export type Inputs = {
   fail_checks_on_error: boolean;
   filter_mitigated_flaws: boolean;
   sandboxname: string;
+  workflow_app: boolean;
 };
 
 export const parseInputs = (getInput: GetInput): Inputs => {
@@ -28,7 +29,7 @@ export const parseInputs = (getInput: GetInput): Inputs => {
 
   // Validate the action value
   if (!Object.values(Actions).includes(action)) {
-    throw new Error(`Invalid action: ${action}. It must be one of '${Object.values(Actions).join("' or '")}'.`);
+    throw new Error(`Invalid action: ${action}. It must be one of '${Object.values(Actions).join('\' or \'')}'.`);
   }
 
   const vid = getInput('vid', { required: true });
@@ -42,6 +43,7 @@ export const parseInputs = (getInput: GetInput): Inputs => {
   const fail_checks_on_policy = getInput('fail_checks_on_policy') === 'true';
   const fail_checks_on_error = getInput('fail_checks_on_error') === 'true';
   const filter_mitigated_flaws = getInput('filter_mitigated_flaws') === 'true';
+  const workflow_app = getInput('workflow_app') === 'true';
 
   const sandboxname = getInput('sandboxname');
 
@@ -61,6 +63,7 @@ export const parseInputs = (getInput: GetInput): Inputs => {
     fail_checks_on_error,
     filter_mitigated_flaws,
     sandboxname,
+    workflow_app,
   };
 };
 

@@ -12,6 +12,87 @@ import { getApplicationFindings } from './findings-service';
 const LINE_NUMBER_SLOP = 3; //adjust to allow for line number movement
 
 export async function preparePipelineResults(inputs: Inputs): Promise<void> {
+  const workflow_app = inputs.workflow_app;
+  if (!workflow_app) {
+    let findingsArray: VeracodePipelineResult.Finding[] = [];
+
+    try {
+      const data = await fs.readFile('filtered_results.json', 'utf-8');
+      const parsedData: VeracodePipelineResult.ResultsData = JSON.parse(data);
+      findingsArray = parsedData.findings;
+    } catch (error) {
+      core.debug(`Error reading or parsing filtered_results.json:${error}`);
+      core.setFailed('Error reading or parsing pipeline scan results.');
+      return;
+    }
+
+    core.info(`Pipeline findings: ${findingsArray.length}`);
+
+    if (findingsArray.length === 0) {
+      core.info('No pipeline findings, exiting and update the github check status to success');
+      return;
+    }
+
+    let policyFindings: VeracodePolicyResult.Finding[] = [];
+
+    try {
+      const application = await getApplicationByName(inputs.appname, inputs.vid, inputs.vkey);
+      const applicationGuid = application.guid;
+      policyFindings = await getApplicationFindings(applicationGuid, inputs.vid, inputs.vkey);
+    } catch (error) {
+      core.info(`No application found with name ${inputs.appname}`);
+      policyFindings = [];
+    }
+  
+    // What if no policy scan?
+    core.info(`Policy findings: ${policyFindings.length}`);
+  
+    const filter_mitigated_flaws = inputs.filter_mitigated_flaws;
+    let policyFindingsToExlcude: VeracodePolicyResult.Finding[] = [];
+
+    if (filter_mitigated_flaws) {
+      // filter out policy findings based on violates_policy = true and finding_status.status = "CLOSED" and
+      // resolution = "POTENTIAL_FALSE_POSITIVE" or "MITIGATED" and resolution_status = "APPROVED"
+      policyFindingsToExlcude = policyFindings.filter((finding) => {
+        return (
+          finding.violates_policy === true &&
+          finding.finding_status.status === 'CLOSED' &&
+          (finding.finding_status.resolution === 'POTENTIAL_FALSE_POSITIVE' ||
+            finding.finding_status.resolution === 'MITIGATED') &&
+          finding.finding_status.resolution_status === 'APPROVED'
+        );
+      });
+    } else
+      policyFindingsToExlcude = policyFindings.filter((finding) => {
+        return finding.violates_policy === true;
+      });
+  
+    core.info(`Mitigated policy findings: ${policyFindingsToExlcude.length}`);
+
+    const filteredFindingsArray = findingsArray.filter((finding) => {
+      return !policyFindingsToExlcude.some((mitigatedFinding) => {
+        return (
+          finding.files.source_file.file === mitigatedFinding.finding_details.file_path &&
+          +finding.cwe_id === mitigatedFinding.finding_details.cwe.id &&
+          Math.abs(finding.files.source_file.line - mitigatedFinding.finding_details.file_line_number) <= LINE_NUMBER_SLOP
+        );
+      });
+    });
+  
+    core.info(`Filtered pipeline findings: ${filteredFindingsArray.length}`);
+
+    if (filteredFindingsArray.length === 0) {
+      core.info('No pipeline findings after filtering, exiting and update the github check status to success');
+      return;
+    } else {
+      core.info('Pipeline findings after filtering, continue to update the github check status');
+      // write filtered results to a file
+      core.info(JSON.stringify(filteredFindingsArray))
+      await fs.writeFile('filtered_mitigated_results.json', JSON.stringify({ findings: filteredFindingsArray }));
+    }
+
+    return;
+  }
   const repo = inputs.source_repository.split('/');
   const ownership = {
     owner: repo[0],
@@ -166,7 +247,7 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
           checkStatic,
           inputs.fail_checks_on_policy ? Checks.Conclusion.Failure : Checks.Conclusion.Success,
           annotationBatch,
-          "Here's the summary of the scan result.",
+          'Here\'s the summary of the scan result.',
         );
       }
     }

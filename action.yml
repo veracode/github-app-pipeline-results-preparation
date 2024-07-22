@@ -14,6 +14,9 @@ inputs:
   appname:
     description: 'Veracode Application Name'
     required: true
+  workflow_app:
+    description: 'Is this action called from the Veracode Workflow App'
+    required: false
   token:
     description: 'your GITHUB_TOKEN'
     required: false
