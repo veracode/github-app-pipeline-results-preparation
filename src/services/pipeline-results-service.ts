@@ -48,6 +48,8 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
     core.info(`Policy findings: ${policyFindings.length}`);
   
     const filter_mitigated_flaws = inputs.filter_mitigated_flaws;
+
+    core.info(`Filter mitigated flaws: ${filter_mitigated_flaws}`);
     let policyFindingsToExlcude: VeracodePolicyResult.Finding[] = [];
 
     if (filter_mitigated_flaws) {
