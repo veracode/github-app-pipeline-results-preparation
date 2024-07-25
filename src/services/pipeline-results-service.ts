@@ -9,7 +9,7 @@ import { updateChecks } from './check-service';
 import { getApplicationByName } from './application-service';
 import { getApplicationFindings } from './findings-service';
 
-const LINE_NUMBER_SLOP = 3; //adjust to allow for line number movement
+const LINE_NUMBER_SLOP = 100; //adjust to allow for line number movement
 
 export async function preparePipelineResults(inputs: Inputs): Promise<void> {
   const repo = inputs.source_repository.split('/');
