@@ -111,6 +111,9 @@ export async function preparePipelineResults(inputs: Inputs): Promise<void> {
   // cwe_id and line_number are the same
   const filteredFindingsArray = findingsArray.filter((finding) => {
     return !policyFindingsToExlcude.some((mitigatedFinding) => {
+      if (mitigatedFinding.finding_details.file_path.charAt(0) === '/') {
+        mitigatedFinding.finding_details.file_path = mitigatedFinding.finding_details.file_path.substring(1);
+      }
       return (
         finding.files.source_file.file === mitigatedFinding.finding_details.file_path &&
         +finding.cwe_id === mitigatedFinding.finding_details.cwe.id &&
