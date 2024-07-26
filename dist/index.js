@@ -29377,7 +29377,7 @@ const inputs_1 = __nccwpck_require__(7128);
 const check_service_1 = __nccwpck_require__(3686);
 const application_service_1 = __nccwpck_require__(8560);
 const findings_service_1 = __nccwpck_require__(3747);
-const LINE_NUMBER_SLOP = 100;
+const LINE_NUMBER_SLOP = 50;
 async function preparePipelineResults(inputs) {
     const repo = inputs.source_repository.split('/');
     const ownership = {
@@ -29490,7 +29490,7 @@ async function preparePipelineResults(inputs) {
         for (let index = 0; index < annotations.length / maxNumberOfAnnotations; index++) {
             const annotationBatch = annotations.slice(index * maxNumberOfAnnotations, (index + 1) * maxNumberOfAnnotations);
             if (annotationBatch.length > 0) {
-                await (0, check_service_1.updateChecks)(octokit, checkStatic, inputs.fail_checks_on_policy ? Checks.Conclusion.Failure : Checks.Conclusion.Success, annotationBatch, "Here's the summary of the scan result.");
+                await (0, check_service_1.updateChecks)(octokit, checkStatic, inputs.fail_checks_on_policy ? Checks.Conclusion.Failure : Checks.Conclusion.Success, annotationBatch, 'Here\'s the summary of the scan result.');
             }
         }
     }
